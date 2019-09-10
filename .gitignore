@@ -4,6 +4,11 @@
 *.xls*
 *.pdf
 *.csv
+*.dbf
+*.prj
+*.qpj
+*.shp
+*.shx
 
 
 # Created by https://www.gitignore.io/api/r

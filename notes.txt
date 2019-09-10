@@ -1,0 +1,10 @@
+-  Community analysis (multivariate, species abundances...)
+
+	+  verify use of SACFOR abundances by relating to quantitative abundances estimated from quadrat photos.
+
+	+  relate to spatial variation in SST and ?Chl-a (MODIS satellite data [monthly daytime 4km resolution]) and wave exposure/fetch (R package 'waver') e.g. Acuna-Marrero et al. 2018 (distribution of sharks in Galapagos) -- dbRDA / CAP?  & other environmental variables?
+
+	+  k-R cluster analysis (Clarke et al. 2006) to identify groups of samples with similar community composition (i.e. habitat types???), & use multivariate analogue of AICc (Burnham & Anderson 2004, Anderson et al. 2008) -- see Acuna-Marrero et al. 2018.
+
+
+-  how to deal with sampling bias? (sub-sampling??)
