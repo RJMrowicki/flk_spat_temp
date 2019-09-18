@@ -70,10 +70,18 @@ asp <- ncol(grid_template) / nrow(grid_template)
 
 
 # use template for rasterization of flk coast:
-# (NB -- this takes a **long time!**)
-system.time(  # measure execution time
-  flk_coast_raster <- rasterize(flk_coast, grid_template)
-)
+# (NB -- this takes a **long time!**, therefore
+# may save time by reloading previously saved object)
+if ("flk_coast_raster" %in% list.files("./objects")) {
+  # if previously saved object in directory, load object:
+  flk_coast_raster <- load("./objects/flk_coast_raster")
+} else {
+  # else create new object and save in directory:
+  system.time(  # measure execution time
+    flk_coast_raster <- rasterize(flk_coast, grid_template)
+  )
+  save(flk_coast_raster, file = "./objects/flk_coast_raster")
+}
 
 
 
@@ -83,11 +91,12 @@ system.time(  # measure execution time
 # sites:
 dd_sites <- read_csv("./data/flk_sites_DPLUS068.csv", na = nas)
 
-# convert survey start and end times into date-times:
-dd_sites <- dd_sites %>% mutate(
-  time_start = ymd_hms(paste(date, time_start)),
-  time_end = ymd_hms(paste(date, time_end))
-)
+dd_sites <- dd_sites %>%
+  # convert survey start and end times into date-times:
+  mutate(
+    time_start = ymd_hms(paste(date, time_start)),
+    time_end = ymd_hms(paste(date, time_end))
+  )
 
 
 
@@ -101,7 +110,7 @@ dd_specimens_herb <- read_csv(
 )
 
 dd_specimens_herb <- dd_specimens_herb %>%
-  # convert from/to year into date:
+  # convert 'from' and 'to' years into dates:
   mutate_at(vars(fromY_new, toY_new), ~ ymd(., truncated = 2)) %>%
   # exclude rows identified in original datasheet:
   filter(is.na(excl))
@@ -119,21 +128,30 @@ dd_specimens_DPLUS068 <- read_csv(
 
 # ~ historical:
 use_dd_specimens_herb <- dd_specimens_herb %>%
-  # create new column for mean year:
-  mutate(Y_new = pmap_dbl(  # row-wise purrr:pmap(), instead of apply()
-    list(fromY_new, toY_new),  # list of vectors to pass to function
-    ~ year(mean(c(...), na.rm = TRUE))  # c(...) converts elements into vector
-  )) %>%
+  # create new column for **mean** year:
+  mutate(
+    year = pmap_dbl(  # row-wise purrr:pmap(), instead of apply()
+      list(fromY_new, toY_new),  # list of vectors to pass to function
+      ~ year(mean(c(...), na.rm = TRUE))  # c(...) converts elements into vector
+    )) %>%
+  # rename coordinates columns:
+  rename(lat = decLat_new, lon = decLon_new) %>%
   # exclude any rows with NA in either year or coordinate columns:
-  filter_at(vars(Y_new, decLat_new, decLon_new), all_vars(!is.na(.))) %>%
+  filter_at(vars(year, lat, lon), all_vars(!is.na(.))) %>%
   # extract columns for name, year and coordinates:
-  dplyr::select(det_name, Y_new, decLat_new, decLon_new)
+  dplyr::select(det_name, year, lat, lon)
 
 
 # ~ contemporary:
 use_dd_specimens_DPLUS068 <- dd_specimens_DPLUS068 %>%
-  # extract columns for group and name:
-  dplyr::select(det_grp, det_name)
+  # join site data (all columns) via lookup:
+  left_join(dd_sites, by = "site_code") %>%
+  # create new column for year:
+  mutate(year = year(date)) %>%
+  # rename **mean** coordinates columns:
+  rename(lat = lat_mean, lon = long_mean) %>%
+  # extract columns for group, name, year and coordinates:
+  dplyr::select(det_grp, det_name, year, lat, lon)
 
 
 # combine historical & contemporary data:
@@ -156,18 +174,15 @@ names(taxa_coords) <- taxa  # name list entries according to taxa
 # i <- taxa[1]  ### test
 
 for (i in taxa) {  # for each taxon,
-  # filter specimen data for this taxon:
-  use_dat <- dd_specimens %>% filter(det_name == i)
-  # extract unique site codes associated with specimens:
-  taxon_sites <- sort(unique(use_dat$site_code))
-  # obtain coordinates associated with these site codes:
-  taxon_coords <- SpatialPoints(  # convert to SpatialPoints object
-    tibble(  # (instead of data.frame)
-      # extract lon and lat (**mean**; matched from dd_sites) for each site:
-      x = dd_sites$long_mean[match(taxon_sites, dd_sites$site_code)],
-      y = dd_sites$lat_mean[match(taxon_sites, dd_sites$site_code)]
-    ), CRS("+init=epsg:4326")  # (NB -- in **WGS84 projection**)
-  )
+  taxon_coords <- dd_specimens %>%
+    # filter specimen data for this taxon:
+    filter(det_name == i) %>%
+    # extract unique locations associated with specimens:
+    distinct_at(vars(lon, lat)) %>%
+    # rename coordinates columns to x & y:
+    rename(x = lon, y = lat) %>%
+    # convert to SpatialPoints object (NB -- **WGS84 projection**):
+    SpatialPoints(CRS("+init=epsg:4326"))
   # assign to corresponding list item (NB -- **reproject**)
   taxa_coords[[i]] <- spTransform(taxon_coords, CRS(my_proj))
 }
