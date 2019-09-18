@@ -74,7 +74,7 @@ asp <- ncol(grid_template) / nrow(grid_template)
 # may save time by reloading previously saved object)
 if ("flk_coast_raster" %in% list.files("./objects")) {
   # if previously saved object in directory, load object:
-  flk_coast_raster <- load("./objects/flk_coast_raster")
+  load("./objects/flk_coast_raster")
 } else {
   # else create new object and save in directory:
   system.time(  # measure execution time
