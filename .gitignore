@@ -2,13 +2,21 @@
 *.ppt*
 *.doc*
 *.xls*
+
 *.pdf
 *.csv
+
 *.dbf
 *.prj
 *.qpj
 *.shp
 *.shx
+*.kml
+
+*.qgs
+*.qgz
+
+*.zip
 
 
 # Created by https://www.gitignore.io/api/r

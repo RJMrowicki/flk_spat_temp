@@ -11,8 +11,12 @@ my_proj <-
 # Robinson: "+proj=robin"
 # Winkel Tripel: "+proj=wintri"
 
-# import Falkland Islands shapefile (polygons):
-shp_flk <- readOGR("./data/map/flk_wgs84.shp", layer = "flk_wgs84")
+# import Falkland Islands coastline shapefile (polygons):
+shp_flk <- readOGR(
+  "./data/map/intermediate/flk_coastline_osm_wgs84_poly.shp",
+  layer = "flk_coastline_osm_wgs84_poly"
+)
+
 # reproject to specified projection:
 shp_flk <- spTransform(shp_flk, CRS(my_proj))
 
@@ -89,7 +93,11 @@ dd_sites <- dd_sites %>% mutate(
 
 
 # specimens:
-dd_specimens <- read_csv("./data/flk_specimens_DPLUS068.csv")
+dd_specimens_DPLUS068 <- read_csv("./data/flk_specimens_DPLUS068.csv")
+dd_specimens_herb <- read_csv("./data/flk_specimens_herb.csv")
+
+# combined specimens:
+dd_specimens <- dd_specimens_DPLUS068  # (NB -- temporary)
 
 
 
@@ -102,9 +110,10 @@ taxa <- taxa[!is.na(taxa)]  # remove 'NA' category
 # create empty list with one entry per taxon for storing site coordinates:
 taxa_coords <- vector("list", length(taxa))
 names(taxa_coords) <- taxa  # name list entries according to taxa
+taxa <- taxa[order(taxa)]  # sort in alphabetical order
 
 
-i <- taxa[1]  ### test
+# i <- taxa[1]  ### test
 
 for (i in taxa) {  # for each taxon,
   # filter specimen data for this taxon:
@@ -122,7 +131,6 @@ for (i in taxa) {  # for each taxon,
   # assign to corresponding list item (NB -- **reproject**)
   taxa_coords[[i]] <- spTransform(taxon_coords, CRS(my_proj))
 }
-
 
 
 taxa_rasters <- taxa_coords  # copy list of coordinates
