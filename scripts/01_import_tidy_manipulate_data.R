@@ -81,7 +81,7 @@ system.time(  # measure execution time
 # Import sites and specimens data -----------------------------------
 
 # sites:
-dd_sites <- read_csv("./data/flk_sites_DPLUS068.csv")
+dd_sites <- read_csv("./data/flk_sites_DPLUS068.csv", na = nas)
 
 # convert survey start and end times into date-times:
 dd_sites <- dd_sites %>% mutate(
@@ -93,11 +93,51 @@ dd_sites <- dd_sites %>% mutate(
 
 
 # specimens:
-dd_specimens_DPLUS068 <- read_csv("./data/flk_specimens_DPLUS068.csv")
-dd_specimens_herb <- read_csv("./data/flk_specimens_herb.csv")
+# ~ historical (herbarium):
+# (NB -- use 'guess_max' to avoid attempted parsing of character
+# columns as logical, based on default maximum 1000 records.)
+dd_specimens_herb <- read_csv(
+  "./data/flk_specimens_herb.csv", na = nas, guess_max = 9999
+)
 
-# combined specimens:
-dd_specimens <- dd_specimens_DPLUS068  # (NB -- temporary)
+dd_specimens_herb <- dd_specimens_herb %>%
+  # convert from/to year into date:
+  mutate_at(vars(fromY_new, toY_new), ~ ymd(., truncated = 2)) %>%
+  # exclude rows identified in original datasheet:
+  filter(is.na(excl))
+
+
+# ~ contemporary (DPLUS068):
+dd_specimens_DPLUS068 <- read_csv(
+  "./data/flk_specimens_DPLUS068.csv", na = nas, guess_max = 9999
+)
+
+
+
+
+# Manipulate specimens data -----------------------------------------
+
+# ~ historical:
+use_dd_specimens_herb <- dd_specimens_herb %>%
+  # create new column for mean year:
+  mutate(Y_new = pmap_dbl(  # row-wise purrr:pmap(), instead of apply()
+    list(fromY_new, toY_new),  # list of vectors to pass to function
+    ~ year(mean(c(...), na.rm = TRUE))  # c(...) converts elements into vector
+  )) %>%
+  # exclude any rows with NA in either year or coordinate columns:
+  filter_at(vars(Y_new, decLat_new, decLon_new), all_vars(!is.na(.))) %>%
+  # extract columns for name, year and coordinates:
+  dplyr::select(det_name, Y_new, decLat_new, decLon_new)
+
+
+# ~ contemporary:
+use_dd_specimens_DPLUS068 <- dd_specimens_DPLUS068 %>%
+  # extract columns for group and name:
+  dplyr::select(det_grp, det_name)
+
+
+# combine historical & contemporary data:
+dd_specimens <- bind_rows(use_dd_specimens_herb, use_dd_specimens_DPLUS068)
 
 
 
@@ -106,11 +146,11 @@ dd_specimens <- dd_specimens_DPLUS068  # (NB -- temporary)
 # as a basis for analysing 'per taxon' distribution data:
 taxa <- unique(dd_specimens$det_name)
 taxa <- taxa[!is.na(taxa)]  # remove 'NA' category
+taxa <- taxa[order(taxa)]  # sort in alphabetical order
 
 # create empty list with one entry per taxon for storing site coordinates:
 taxa_coords <- vector("list", length(taxa))
 names(taxa_coords) <- taxa  # name list entries according to taxa
-taxa <- taxa[order(taxa)]  # sort in alphabetical order
 
 
 # i <- taxa[1]  ### test
