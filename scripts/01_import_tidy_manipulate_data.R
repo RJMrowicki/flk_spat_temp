@@ -1,7 +1,7 @@
 # flk_spat_temp
 # import, tidy and manipulate data
 
-# Import map data ---------------------------------------------------
+# Import map data ===================================================
 
 # specify default projection (UTM zone 21S):
 my_proj <-
@@ -23,10 +23,10 @@ shp_flk <- spTransform(shp_flk, CRS(my_proj))
 
 
 
-# Manipulate map data -----------------------------------------------
+# Manipulate map data ===============================================
 
 # simplify flk shapefile (for plotting):
-shp_flk_simple <- ms_simplify(shp_flk, keep = 0.2)
+shp_flk_simple <- ms_simplify(shp_flk, keep = 0.1)
 
 
 
@@ -86,7 +86,7 @@ if ("flk_coast_raster" %in% list.files("./objects")) {
 
 
 
-# Import sites and specimens data -----------------------------------
+# Import sites and specimens data ====================================
 
 # sites:
 dd_sites <- read_csv("./data/flk_sites_DPLUS068.csv", na = nas)
@@ -124,7 +124,7 @@ dd_specimens_DPLUS068 <- read_csv(
 
 
 
-# Manipulate specimens data -----------------------------------------
+# Manipulate specimens data =========================================
 
 # ~ historical:
 use_dd_specimens_herb <- dd_specimens_herb %>%
@@ -160,38 +160,79 @@ dd_specimens <- bind_rows(use_dd_specimens_herb, use_dd_specimens_DPLUS068)
 
 
 
+# specify minimum and maximum year:
+min_year <- min(dd_specimens$year, na.rm = TRUE)
+max_year <- max(dd_specimens$year, na.rm = TRUE)
+# determine year group breaks:
+breaks <- c(min_year, seq(1850, 2000, 50), max_year)
+
+dd_specimens <- dd_specimens %>%
+  # create new column for year group:
+  mutate(year_grp = cut(year, breaks, include.lowest = TRUE, dig.lab = 4))
+
+# extract year group levels:
+year_grps <- levels(dd_specimens$year_grp)
+
+
+
+
 # create vector of taxa (NB -- based on determined **name**)
 # as a basis for analysing 'per taxon' distribution data:
 taxa <- unique(dd_specimens$det_name)
 taxa <- taxa[!is.na(taxa)]  # remove 'NA' category
 taxa <- taxa[order(taxa)]  # sort in alphabetical order
 
-# create empty list with one entry per taxon for storing site coordinates:
-taxa_coords <- vector("list", length(taxa))
+
+
+
+
+# create empty list for storing site coordinates per taxon/year group:
+# ~ create blank list for storing data per year group:
+a <- vector("list", length(year_grps))
+names(a) <- year_grps  # name list entries according to year group
+# ~ create list of year group lists with one entry per taxon:
+taxa_coords <- rep(list(a), length(taxa))
 names(taxa_coords) <- taxa  # name list entries according to taxa
 
 
+
+
 # i <- taxa[1]  ### test
+# j <- year_grps[5]  ### test
 
 for (i in taxa) {  # for each taxon,
-  taxon_coords <- dd_specimens %>%
-    # filter specimen data for this taxon:
-    filter(det_name == i) %>%
-    # extract unique locations associated with specimens:
-    distinct_at(vars(lon, lat)) %>%
-    # rename coordinates columns to x & y:
-    rename(x = lon, y = lat) %>%
-    # convert to SpatialPoints object (NB -- **WGS84 projection**):
-    SpatialPoints(CRS("+init=epsg:4326"))
-  # assign to corresponding list item (NB -- **reproject**)
-  taxa_coords[[i]] <- spTransform(taxon_coords, CRS(my_proj))
+  # filter specimen data for this taxon:
+  taxon_dat <- dd_specimens %>% filter(det_name == i)
+  for (j in year_grps) {  # for each year group,
+    # only if year group represented in taxon data:
+    if (j %in% taxon_dat$year_grp) {
+      taxon_coords <- taxon_dat %>%
+        # filter taxon data for this year group:
+        filter(year_grp == j) %>%
+        # extract unique locations associated with specimens:
+        distinct_at(vars(lon, lat)) %>%
+        # rename coordinates columns to x & y:
+        rename(x = lon, y = lat) %>%
+        # convert to SpatialPoints object (NB -- **WGS84 projection**):
+        SpatialPoints(CRS("+init=epsg:4326"))
+      # assign to corresponding list item (NB -- **reproject**)
+      taxa_coords[[i]][[j]] <- spTransform(taxon_coords, CRS(my_proj))
+    }
+  }
 }
+
+
 
 
 taxa_rasters <- taxa_coords  # copy list of coordinates
 
 for (i in taxa) {  # for each taxon,
-  # rasterise point coordinates based on grid template:
-  taxa_rasters[[i]] <- rasterize(
-    taxa_coords[[i]], grid_template, field = 1, crs = my_proj)
+  for (j in year_grps) {  # for each year group,
+    # only if coordinates are not NULL:
+    if (!is.null(taxa_coords[[i]][[j]])) {
+      # rasterise point coordinates based on grid template:
+      taxa_rasters[[i]][[j]] <- rasterize(
+        taxa_coords[[i]][[j]], grid_template, field = 1, crs = my_proj)
+    }
+  }
 }  

@@ -14,7 +14,7 @@ nas <- c("", "NA", "#N/A")  # missing value strings for read_csv
 
 
 
-# Packages ----------------------------------------------------------
+# Packages ==========================================================
 
 # load required packages:
 suppressPackageStartupMessages(library(tidyverse))
@@ -29,7 +29,7 @@ library(rmapshaper)  # ms_simplify()
 
 
 
-# Functions ---------------------------------------------------------
+# Functions =========================================================
 
 # load functions:
 source('./scripts/functions.R')
