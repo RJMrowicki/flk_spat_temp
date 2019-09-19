@@ -178,12 +178,28 @@ year_grps <- levels(dd_specimens$year_grp)
 
 
 
+# extract all unique coordinates:
+all_coords <- dd_specimens %>% distinct_at(vars(lon, lat))
+# calculate all pairwise distances (in m):
+all_dists <- 1000 * spDists(as.matrix(all_coords), longlat = TRUE)
+all_dists[all_dists == 0] <- NA  # replace 0s with NAs
+all_dists <- as_tibble(all_dists)  # convert to tibble
+
+# calculate 'nearest neighbour' distance for each point
+# (i.e. minimum value in each column of distance matrix):
+nndists <- all_dists %>% map_dbl(~ min(., na.rm = TRUE))
+
+# median nearest neighbour distance:
+median_nndist <- median(nndists, na.rm = TRUE)
+
+
+
+
 # create vector of taxa (NB -- based on determined **name**)
 # as a basis for analysing 'per taxon' distribution data:
 taxa <- unique(dd_specimens$det_name)
 taxa <- taxa[!is.na(taxa)]  # remove 'NA' category
 taxa <- taxa[order(taxa)]  # sort in alphabetical order
-
 
 
 
@@ -195,8 +211,6 @@ names(a) <- year_grps  # name list entries according to year group
 # ~ create list of year group lists with one entry per taxon:
 taxa_coords <- rep(list(a), length(taxa))
 names(taxa_coords) <- taxa  # name list entries according to taxa
-
-
 
 
 # i <- taxa[1]  ### test
@@ -212,9 +226,9 @@ for (i in taxa) {  # for each taxon,
         # filter taxon data for this year group:
         filter(year_grp == j) %>%
         # extract unique locations associated with specimens:
-        distinct_at(vars(lon, lat)) %>%
-        # rename coordinates columns to x & y:
-        rename(x = lon, y = lat) %>%
+        distinct_at(vars(lon, lat)) %>%  # (NB -- **x before y**)
+        # # rename coordinates columns to x & y:
+        # rename(x = lon, y = lat) %>%
         # convert to SpatialPoints object (NB -- **WGS84 projection**):
         SpatialPoints(CRS("+init=epsg:4326"))
       # assign to corresponding list item (NB -- **reproject**)
