@@ -134,12 +134,12 @@ use_dd_specimens_herb <- dd_specimens_herb %>%
       list(fromY_new, toY_new),  # list of vectors to pass to function
       ~ year(mean(c(...), na.rm = TRUE))  # c(...) converts elements into vector
     )) %>%
-  # rename coordinates columns:
-  rename(lat = decLat_new, lon = decLon_new) %>%
+  # rename coordinates and extent columns:
+  rename(lat = decLat_new, lon = decLon_new, extent = extent_m) %>%
   # exclude any rows with NA in either year or coordinate columns:
   filter_at(vars(year, lat, lon), all_vars(!is.na(.))) %>%
   # extract columns for name, year and coordinates:
-  dplyr::select(det_name, year, lat, lon)
+  dplyr::select(det_name, year, lat, lon, extent)
 
 
 # ~ contemporary:
@@ -150,8 +150,10 @@ use_dd_specimens_DPLUS068 <- dd_specimens_DPLUS068 %>%
   mutate(year = year(date)) %>%
   # rename **mean** coordinates columns:
   rename(lat = lat_mean, lon = long_mean) %>%
-  # extract columns for group, name, year and coordinates:
-  dplyr::select(det_grp, det_name, year, lat, lon)
+  # create column for extent (30m for GPS coordinates):
+  mutate(extent = 30) %>%
+  # extract columns for group, name, year, coordinates and extent:
+  dplyr::select(det_grp, det_name, year, lat, lon, extent)
 
 
 # combine historical & contemporary data:

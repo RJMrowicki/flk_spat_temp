@@ -15,5 +15,5 @@ source('./scripts/00_init.R')  # run initialisation script
 ```{r source_scripts, include = FALSE}
 # run data scripts:
 source('./scripts/01_import_tidy_manipulate_data.R')
-source('./scripts/02_plot_distribution_maps.R')
+source('./scripts/02_plot_figures.R')
 ```

@@ -1,5 +1,33 @@
 # flk_spat_temp
-# plot distribution maps
+# plot figures
+
+# Summary histogram =================================================
+
+# open .pdf plotting device:
+pdf(
+  "./figures/histogram.pdf",
+  width = 10/2.54, height = 7.5/2.54
+)
+
+
+# plot histogram of no. of specimens vs. year:
+ggplot(dd_specimens, aes(x = year)) +
+  # 
+  geom_histogram(binwidth = 10, boundary = 0) +
+  scale_x_continuous(
+    limits = c(1820, 2020), expand = c(0, 0),
+    breaks = seq(1800, 2050, 50), name = "Year") +
+  scale_y_continuous(
+    limits = c(0, 1750), expand = c(0, 0),
+    breaks = seq(0, 2000, 500), name = "No. of specimens") +
+  theme_rob()  # apply custom theme
+
+
+# close .pdf plotting device
+dev.off()
+
+
+
 
 # Base map ==========================================================
 
