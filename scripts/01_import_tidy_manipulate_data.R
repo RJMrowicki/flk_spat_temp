@@ -143,7 +143,7 @@ my_proj <-
 # import Falkland Islands coastline shapefile (polygons):
 shp_flk <- readOGR(
   "./data/map/intermediate/flk_coastline_osm_wgs84_poly.shp",
-  layer = "flk_coastline_osm_wgs84_poly", p4s = my_proj
+  layer = "flk_coastline_osm_wgs84_poly"
 )
 
 # reproject to specified projection:
@@ -164,7 +164,9 @@ shp_flk_simple <- ms_simplify(shp_flk, keep = 0.1)
 flk_coast <- as(shp_flk, "SpatialLinesDataFrame")
 
 # specify desired grid resolution (in m):
-grid_res <- 5000
+# (NB -- use mean nearest neighbour distance between points
+# 'far from' Stanley, rounded to nearest km)
+grid_res <- round(mean_dist_far, digits = -3)
 
 # create grid template for rasterising vector:
 grid_template <- raster(

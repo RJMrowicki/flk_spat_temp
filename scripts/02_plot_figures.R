@@ -74,8 +74,13 @@ par(mar = rep(0.1, 4))  # narrow outer margins
 
 # create plots:
 for (i in taxa) {  # for each taxon,
-  # only if coordinates are not NULL (NB -- **most recent** year group):
-  if (!is.null(taxa_rasters[[i]][[year_grps[length(year_grps)]]])) {
+  
+  # extract rasterised point coordinates for this taxon
+  # (NB -- **most recent** year group only):
+  taxon_raster <- taxa_rasters[[i]][[year_grps[length(year_grps)]]]
+  
+  # only if coordinates are not NULL 
+  if (!is.null(taxon_raster)) {
     
     # plot raster cell underlay (as polygons):
     plot(
@@ -91,9 +96,8 @@ for (i in taxa) {  # for each taxon,
     
     # add taxon raster squares:
     plot(
-      # (NB -- **most recent** year group only)
-      rasterToPolygons(taxa_rasters[[i]][[year_grps[length(year_grps)]]]),
-      add = TRUE, border = NA, col = adjustcolor("royalblue", alpha = 0.8)
+      rasterToPolygons(taxon_raster), add = TRUE,
+      border = NA, col = adjustcolor("royalblue", alpha = 0.8)
     )
     
     # add taxon name in top right corner:
