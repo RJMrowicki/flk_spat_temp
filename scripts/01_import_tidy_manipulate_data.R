@@ -180,17 +180,23 @@ year_grps <- levels(dd_specimens$year_grp)
 
 # extract all unique coordinates:
 all_coords <- dd_specimens %>% distinct_at(vars(lon, lat))
-# calculate all pairwise distances (in m):
-all_dists <- 1000 * spDists(as.matrix(all_coords), longlat = TRUE)
-all_dists[all_dists == 0] <- NA  # replace 0s with NAs
-all_dists <- as_tibble(all_dists)  # convert to tibble
 
-# calculate 'nearest neighbour' distance for each point
-# (i.e. minimum value in each column of distance matrix):
-nndists <- all_dists %>% map_dbl(~ min(., na.rm = TRUE))
+# specify coordinates for Stanley (see georeferencing protocol):
+stanley_coords <- t(matrix(c(-57.85954, -51.69458)))  # x, y
+# calculate distance from Stanley (in m) for all coordinates:
+stanley_dists <- 1000 * spDists(
+  as.matrix(all_coords), stanley_coords, longlat = TRUE
+)
 
-# median nearest neighbour distance:
-median_nndist <- median(nndists, na.rm = TRUE)
+# subset all coordinates into 'near to' and 'far from' Stanley,
+# based on cutoff distance of **5 km** (in m):
+near_coords <- all_coords[which(stanley_dists <= 5000), ]
+far_coords <- all_coords[which(stanley_dists > 5000), ]
+
+# calculate median nearest neighbour distance (in m)
+# separately for coordinates 'near to' and 'far from' Stanley:
+median_dist_near <- median(nndists(near_coords), na.rm = TRUE)
+median_dist_far <- median(nndists(far_coords), na.rm = TRUE)
 
 
 
@@ -214,7 +220,7 @@ names(taxa_coords) <- taxa  # name list entries according to taxa
 
 
 # i <- taxa[1]  ### test
-# j <- year_grps[5]  ### test
+# j <- year_grps[1]  ### test
 
 for (i in taxa) {  # for each taxon,
   # filter specimen data for this taxon:

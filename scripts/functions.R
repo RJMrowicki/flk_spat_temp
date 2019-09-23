@@ -1,7 +1,29 @@
 # flk_spat_temp
 # functions
 
+# calculate nearest neighbour distances for set of coordinates:
+# (requires sp::spDists() and tibble::as_tibble())
+nndists <- function (coords)
+{
+  # calculate all pairwise distances (in m):
+  dists <- 1000 * spDists(as.matrix(coords), longlat = TRUE)
+  dists[dists == 0] <- NA  # replace 0s with NAs
+  # assign numerical row/column names (avoid as_tibble warning):
+  rownames(dists) <- colnames(dists) <- 1:nrow(dists)
+  dists <- as_tibble(dists)  # convert to tibble
+  
+  # calculate 'nearest neighbour' distance for each point
+  # (i.e. minimum value in each column of distance matrix):
+  nndists <- dists %>% map_dbl(~ min(., na.rm = TRUE))
+  
+  return(nndists)  # output result
+}
+
+
+
+
 # make custom ggplot2 theme:
+# (requires ggplot2::theme())
 theme_rob <- function (axis_col = "black")
 { 
   theme_bw() %+replace% 
