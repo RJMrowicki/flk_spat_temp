@@ -102,30 +102,32 @@ taxa <- taxa[order(taxa)]  # sort in alphabetical order
 
 
 
-# extract all unique coordinates:
-all_coords <- dd_specimens %>%
-  distinct_at(vars(lon, lat), .keep_all = TRUE) %>%
-  filter(extent <= 500) %>%  # (NB -- **extent <= 500 m**)
-  # select coordinate columns only:
-  dplyr::select(lon, lat)
-
 # specify coordinates for Stanley (see georeferencing protocol):
 stanley_coords <- t(matrix(c(-57.85954, -51.69458)))  # x, y
 
-# calculate distance from Stanley (in m) for all coordinates:
-stanley_dists <- 1000 * spDists(
-  as.matrix(all_coords), stanley_coords, longlat = TRUE
-)
+# create table of all unique coordinates:
+all_coords <- dd_specimens %>%
+  # extract all unique lat-long combinations:
+  distinct_at(vars(lon, lat), .keep_all = TRUE) %>%
+  filter(extent <= 500) %>%  # (NB -- **extent <= 500 m**)
+  # calculate distance to Stanley (in m):
+  mutate(dist_stanley = pmap_dbl(  # pmap() instead of apply()
+    list(lon, lat),  # list of vectors to pass to function,
+    # using 'c(...)' to convert elements into vectors:
+    ~ 1000 * spDists(t(matrix(c(...))), stanley_coords, longlat = TRUE)
+  )) %>%
+  # select coordinate, extent and distance columns only:
+  dplyr::select(lon, lat, extent, dist_stanley)
 
-# subset all coordinates into 'near to' and 'far from' Stanley,
+# calculate mean nearest neighbour distance (in m)
+# separately for coordinates 'near to' and 'far from' Stanley,
 # based on cutoff distance of **5 km** (in m):
-near_coords <- all_coords[which(stanley_dists <= 5000), ]
-far_coords <- all_coords[which(stanley_dists > 5000), ]
-
-# calculate median nearest neighbour distance (in m)
-# separately for coordinates 'near to' and 'far from' Stanley:
-mean_dist_near <- mean(nndists(near_coords), na.rm = TRUE)
-mean_dist_far <- mean(nndists(far_coords), na.rm = TRUE)
+mean_dist_near <- all_coords %>%
+  filter(dist_stanley <= 5000) %>%
+  nndists %>% mean(na.rm = TRUE)
+mean_dist_far <- all_coords %>%
+  filter(dist_stanley > 5000) %>%
+  nndists %>% mean(na.rm = TRUE)
 
 
 
@@ -240,8 +242,6 @@ for (i in taxa) {  # for each taxon,
         filter(year_grp == j) %>%
         # extract unique locations associated with specimens:
         distinct_at(vars(lon, lat)) %>%  # (NB -- **x before y**)
-        # # rename coordinates columns to x & y:
-        # rename(x = lon, y = lat) %>%
         # convert to SpatialPoints object (NB -- **WGS84 projection**):
         SpatialPoints(CRS("+init=epsg:4326"))
       # assign to corresponding list item (NB -- **reproject**)
@@ -253,15 +253,18 @@ for (i in taxa) {  # for each taxon,
 
 
 
-taxa_rasters <- taxa_coords  # copy list of coordinates
+taxa_rasters <- taxa_coords %>%
+  # rasterise point coordinates based on grid template
+  # for each year group within each taxon:
+  map_depth(2, ~ if (!is.null(.)) {  # only if coordinates not NULL
+    rasterize(., grid_template, field = 1, crs = my_proj)
+  })
 
-for (i in taxa) {  # for each taxon,
-  for (j in year_grps) {  # for each year group,
-    # only if coordinates are not NULL:
-    if (!is.null(taxa_coords[[i]][[j]])) {
-      # rasterise point coordinates based on grid template:
-      taxa_rasters[[i]][[j]] <- rasterize(
-        taxa_coords[[i]][[j]], grid_template, field = 1, crs = my_proj)
-    }
-  }
-}  
+
+
+
+taxa_features <- taxa_rasters %>%
+  # calculate number of 'features' (occupied cells)
+  # for each year group within each taxon:
+  # (NB -- only if coordinates not NULL)
+  map_depth(2, ~ if (!is.null(.)) { cellStats(., sum) })

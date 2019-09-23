@@ -3,8 +3,11 @@
 
 # calculate nearest neighbour distances for set of coordinates:
 # (requires sp::spDists() and tibble::as_tibble())
-nndists <- function (coords)
+nndists <- function (coords_dat)
 {
+  # extract lon and lat columns from input data:
+  coords <- coords_dat %>% dplyr::select(lon, lat)
+  
   # calculate all pairwise distances (in m):
   dists <- 1000 * spDists(as.matrix(coords), longlat = TRUE)
   dists[dists == 0] <- NA  # replace 0s with NAs
