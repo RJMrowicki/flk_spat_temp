@@ -1,91 +1,6 @@
 # flk_spat_temp
 # import, tidy and manipulate data
 
-# Import map data ===================================================
-
-# specify default projection (UTM zone 21S):
-my_proj <-
-  "+proj=utm +zone=21 +south +ellps=WGS84 +datum=WGS84 +units=m +no_defs"
-# (NB -- units in m for rasterisation below)
-# WGS84: "+init=epsg:4326"
-# Robinson: "+proj=robin"
-# Winkel Tripel: "+proj=wintri"
-
-# import Falkland Islands coastline shapefile (polygons):
-shp_flk <- readOGR(
-  "./data/map/intermediate/flk_coastline_osm_wgs84_poly.shp",
-  layer = "flk_coastline_osm_wgs84_poly"
-)
-
-# reproject to specified projection:
-shp_flk <- spTransform(shp_flk, CRS(my_proj))
-
-
-
-
-# Manipulate map data ===============================================
-
-# simplify flk shapefile (for plotting):
-shp_flk_simple <- ms_simplify(shp_flk, keep = 0.1)
-
-
-
-
-# convert polygons into lines:
-flk_coast <- as(shp_flk, "SpatialLinesDataFrame")
-
-# specify desired grid resolution (in m):
-grid_res <- 5000
-
-# create grid template for rasterising vector:
-grid_template <- raster(
-  extent(flk_coast), resolution = grid_res, crs = my_proj
-)
-
-# if template x extent is smaller than vector x extent:
-if (
-  diff(as.matrix(extent(grid_template))["x", ]) <
-  diff(as.matrix(extent(flk_coast))["x", ])
-) {
-  # extend template extent by 1 column (to right):
-  grid_template <- modify_raster_margins(grid_template, c(0, 1, 0, 0))
-  # # raster::extend() extends by 1 column on *both* sides:
-  # grid_template <- extend(grid_template, y = c(0, 1))
-}
-
-# and if template y extent is smaller than vector y extent:
-if (
-  diff(as.matrix(extent(grid_template))["y", ]) <
-  diff(as.matrix(extent(flk_coast))["y", ])
-) {
-  # extend template extent by 1 row:
-  grid_template <- modify_raster_margins(grid_template, c(0, 1, 0, 0))
-  # grid_template <- extend(grid_template, y = c(1, 0))
-}
-
-# extract aspect ratio of template (for plotting):
-asp <- ncol(grid_template) / nrow(grid_template)
-
-
-
-
-# use template for rasterization of flk coast:
-# (NB -- this takes a **long time!**, therefore
-# may save time by reloading previously saved object)
-if ("flk_coast_raster" %in% list.files("./objects")) {
-  # if previously saved object in directory, load object:
-  load("./objects/flk_coast_raster")
-} else {
-  # else create new object and save in directory:
-  system.time(  # measure execution time
-    flk_coast_raster <- rasterize(flk_coast, grid_template)
-  )
-  save(flk_coast_raster, file = "./objects/flk_coast_raster")
-}
-
-
-
-
 # Import sites and specimens data ====================================
 
 # sites:
@@ -178,11 +93,25 @@ year_grps <- levels(dd_specimens$year_grp)
 
 
 
+# create vector of taxa (NB -- based on determined **name**)
+# as a basis for analysing 'per taxon' distribution data:
+taxa <- unique(dd_specimens$det_name)
+taxa <- taxa[!is.na(taxa)]  # remove 'NA' category
+taxa <- taxa[order(taxa)]  # sort in alphabetical order
+
+
+
+
 # extract all unique coordinates:
-all_coords <- dd_specimens %>% distinct_at(vars(lon, lat))
+all_coords <- dd_specimens %>%
+  distinct_at(vars(lon, lat), .keep_all = TRUE) %>%
+  filter(extent <= 500) %>%  # (NB -- **extent <= 500 m**)
+  # select coordinate columns only:
+  dplyr::select(lon, lat)
 
 # specify coordinates for Stanley (see georeferencing protocol):
 stanley_coords <- t(matrix(c(-57.85954, -51.69458)))  # x, y
+
 # calculate distance from Stanley (in m) for all coordinates:
 stanley_dists <- 1000 * spDists(
   as.matrix(all_coords), stanley_coords, longlat = TRUE
@@ -195,17 +124,93 @@ far_coords <- all_coords[which(stanley_dists > 5000), ]
 
 # calculate median nearest neighbour distance (in m)
 # separately for coordinates 'near to' and 'far from' Stanley:
-median_dist_near <- median(nndists(near_coords), na.rm = TRUE)
-median_dist_far <- median(nndists(far_coords), na.rm = TRUE)
+mean_dist_near <- mean(nndists(near_coords), na.rm = TRUE)
+mean_dist_far <- mean(nndists(far_coords), na.rm = TRUE)
 
 
 
 
-# create vector of taxa (NB -- based on determined **name**)
-# as a basis for analysing 'per taxon' distribution data:
-taxa <- unique(dd_specimens$det_name)
-taxa <- taxa[!is.na(taxa)]  # remove 'NA' category
-taxa <- taxa[order(taxa)]  # sort in alphabetical order
+# Import map data ===================================================
+
+# specify default projection (UTM zone 21S):
+my_proj <-
+  "+proj=utm +zone=21 +south +ellps=WGS84 +datum=WGS84 +units=m +no_defs"
+# (NB -- units in m for rasterisation below)
+# WGS84: "+init=epsg:4326"
+# Robinson: "+proj=robin"
+# Winkel Tripel: "+proj=wintri"
+
+# import Falkland Islands coastline shapefile (polygons):
+shp_flk <- readOGR(
+  "./data/map/intermediate/flk_coastline_osm_wgs84_poly.shp",
+  layer = "flk_coastline_osm_wgs84_poly", p4s = my_proj
+)
+
+# reproject to specified projection:
+shp_flk <- spTransform(shp_flk, CRS(my_proj))
+
+
+
+
+# Manipulate map data ===============================================
+
+# simplify flk shapefile (for plotting):
+shp_flk_simple <- ms_simplify(shp_flk, keep = 0.1)
+
+
+
+
+# convert polygons into lines:
+flk_coast <- as(shp_flk, "SpatialLinesDataFrame")
+
+# specify desired grid resolution (in m):
+grid_res <- 5000
+
+# create grid template for rasterising vector:
+grid_template <- raster(
+  extent(flk_coast), resolution = grid_res, crs = my_proj
+)
+
+# if template x extent is smaller than vector x extent:
+if (
+  diff(as.matrix(extent(grid_template))["x", ]) <
+  diff(as.matrix(extent(flk_coast))["x", ])
+) {
+  # extend template extent by 1 column (to right):
+  grid_template <- modify_raster_margins(grid_template, c(0, 1, 0, 0))
+  # # raster::extend() extends by 1 column on *both* sides:
+  # grid_template <- extend(grid_template, y = c(0, 1))
+}
+
+# and if template y extent is smaller than vector y extent:
+if (
+  diff(as.matrix(extent(grid_template))["y", ]) <
+  diff(as.matrix(extent(flk_coast))["y", ])
+) {
+  # extend template extent by 1 row:
+  grid_template <- modify_raster_margins(grid_template, c(0, 1, 0, 0))
+  # grid_template <- extend(grid_template, y = c(1, 0))
+}
+
+# extract aspect ratio of template (for plotting):
+asp <- ncol(grid_template) / nrow(grid_template)
+
+
+
+
+# use template for rasterization of flk coast:
+# (NB -- this takes a **long time!**, therefore
+# may save time by reloading previously saved object)
+if ("flk_coast_raster" %in% list.files("./objects")) {
+  # if previously saved object in directory, load object:
+  load("./objects/flk_coast_raster")
+} else {
+  # else create new object and save in directory:
+  system.time(  # measure execution time
+    flk_coast_raster <- rasterize(flk_coast, grid_template)
+  )
+  save(flk_coast_raster, file = "./objects/flk_coast_raster")
+}
 
 
 
