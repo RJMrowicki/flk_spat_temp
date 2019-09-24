@@ -18,11 +18,12 @@ nas <- c("", "NA", "#N/A")  # missing value strings for read_csv
 suppressPackageStartupMessages(library(tidyverse))
 library(lubridate)  # ymd_hms(), year(), etc.
 
+library(alphahull)  # ashape(), areahull()
+library(igraph)  # graph.edgelist()
 library(raster)  # raster(), plot.raster()
 library(rgdal)  # readOGS(), spTransform()
-
-library(spatial.tools)  # modify_raster_margins()
 library(rmapshaper)  # ms_simplify()
+library(spatial.tools)  # modify_raster_margins()
 
 
 

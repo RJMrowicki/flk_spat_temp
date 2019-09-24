@@ -77,11 +77,11 @@ dd_specimens <- bind_rows(use_dd_specimens_herb, use_dd_specimens_DPLUS068)
 
 
 
-# specify minimum and maximum year:
-min_year <- min(dd_specimens$year, na.rm = TRUE)
-max_year <- max(dd_specimens$year, na.rm = TRUE)
+# specify year range (for extracting min and max):
+year_range <- range(dd_specimens$year, na.rm = TRUE)
+
 # determine year group breaks:
-breaks <- c(min_year, seq(1850, 2000, 50), max_year)
+breaks <- c(year_range[1], seq(1850, 2000, 50), year_range[2])
 
 dd_specimens <- dd_specimens %>%
   # create new column for year group:
@@ -163,7 +163,7 @@ shp_flk_simple <- ms_simplify(shp_flk, keep = 0.1)
 
 
 # convert polygons into lines:
-flk_coast <- as(shp_flk, "SpatialLinesDataFrame")
+flk_coast <- as(shp_flk, "SpatialLinesDataFrame")  # shp_flk_simple?
 
 # specify desired grid resolution (in m):
 # (NB -- use mean nearest neighbour distance between points
@@ -263,8 +263,32 @@ taxa_rasters <- taxa_coords %>%
 
 
 
-taxa_features <- taxa_rasters %>%
-  # calculate number of 'features' (occupied cells)
+taxa_aoo <- taxa_rasters %>%
+  # calculate **area** of occupancy (in km^2)
   # for each year group within each taxon:
-  # (NB -- only if coordinates not NULL)
-  map_depth(2, ~ if (!is.null(.)) { cellStats(., sum) })
+  map_depth(2, ~ if (!is.null(.)) {  # only if coordinates not NULL
+    # no. of occupied cells * cell area (in km):
+    cellStats(., sum) * prod(res(.)/10^3)
+  })
+
+
+
+
+taxa_eoo <- taxa_coords %>%
+  # calculate **extent** of occupancy (in km^2)
+  # for each year group within each taxon:
+  map_depth(2, ~ if (!is.null(.)) {  # only if coordinates not NULL
+    if (length(.) == 3) {  # if 3 points,
+      # calculate area of **convex hull** polygon:
+      area(chull_poly(coordinates(.), my_proj)) / 10^6
+    }
+    if (length(.) > 3) {  # if >3 points,
+      # calculate **alpha hull** (= alpha shape):
+      # (NB -- alpha value based on x coordinate range multiplied by
+      # factor large enough to avoid collapsed edges on some datasets,
+      # determined by trial and error)
+      ashp <- ashape(coordinates(.), alpha = 3 * (extent(.)[2] - extent(.)[1]))
+      # convert to polygon and calculate area:
+      area(ashape_poly(ashp, my_proj)) / 10^6
+    }
+  })

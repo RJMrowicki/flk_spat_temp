@@ -1,6 +1,63 @@
 # flk_spat_temp
 # functions
 
+# convert alphahull::ashape into sp::SpatialPolygon object:
+# (see <https://babichmorrowc.github.io/post/2019-03-18-alpha-hull/>)
+# (requires igraph package)
+ashape_poly <- function(ashp, use_proj)
+{
+  # create ashape edge graph:
+  ashp_graph <- ashp$edges %>% as_tibble %>%
+    # select ashape edge index columns and convert to character:
+    dplyr::select(ind1, ind2) %>% mutate_all(as.character) %>%
+    # convert to matrix and create graph (not plotted):
+    as.matrix %>% graph_from_edgelist(directed = FALSE)
+  
+  # cut graph (remove single edge) to create chain:
+  cut_graph <- ashp_graph - E(ashp_graph)[1]
+  
+  # extract chain ends (corresponding nodes for which degree = 1):
+  ends <- names(which(degree(cut_graph) == 1))
+  # extract ordered vector of nodes in path:
+  path_ind <- shortest_paths(cut_graph, ends[1], ends[2])$vpath[[1]]  # index
+  path <- as.numeric(V(ashp_graph)[path_ind]$name)  # corresponding nodes
+  path_full <- c(path, path[1])  # join ends
+  
+  # extract path coordinates and convert to polgyon:
+  ashp_poly <- Polygon(ashp$x[path_full, ])
+  # convert polygon into SpatialPolygons object:
+  ashp_spoly <- SpatialPolygons(
+    list(Polygons(list(ashp_poly), 1)),  # via Polygons object
+    proj4string = CRS(use_proj)  # specify projection
+  )
+  
+  # output SpatialPolygons object:
+  return(ashp_spoly)
+}
+
+
+
+
+# create convex hull from points as SpatialPolygons object:
+# (requires sp::Polygon, Polygons, SpatialPolygons)
+chull_poly <- function(coords, use_proj)
+{
+  ch <- chull(coords)  # calculate convex hull nodes
+  # extract path coordinates and convert to polygon:
+  ch_poly <- Polygon(coords[c(ch, ch[1]), ])
+  # convert polygon into SpatialPolygons object:
+  ch_spoly <- SpatialPolygons(
+    list(Polygons(list(ch_poly), 1)),  # via Polygons object
+    proj4string = CRS(use_proj)  # specify projection
+  )
+  
+  # output SpatialPolygons object:
+  return(ch_spoly)
+}
+
+
+
+
 # calculate nearest neighbour distances for set of coordinates:
 # (requires sp::spDists() and tibble::as_tibble())
 nndists <- function (coords_dat)
