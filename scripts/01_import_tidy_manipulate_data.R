@@ -119,15 +119,13 @@ all_coords <- dd_specimens %>%
   # select coordinate, extent and distance columns only:
   dplyr::select(lon, lat, extent, dist_stanley)
 
-# calculate mean nearest neighbour distance (in m)
+# calculate maximum nearest neighbour distance (in m)
 # separately for coordinates 'near to' and 'far from' Stanley,
-# based on cutoff distance of **5 km** (in m):
-mean_dist_near <- all_coords %>%
-  filter(dist_stanley <= 5000) %>%
-  nndists %>% mean(na.rm = TRUE)
-mean_dist_far <- all_coords %>%
-  filter(dist_stanley > 5000) %>%
-  nndists %>% mean(na.rm = TRUE)
+# based on arbitrary cutoff distance of **5 km** (in m):
+max_dist_near <- all_coords %>%
+  filter(dist_stanley <= 5000) %>% nndists %>% max(na.rm = TRUE)
+max_dist_far <- all_coords %>%
+  filter(dist_stanley > 5000) %>% nndists %>% max(na.rm = TRUE)
 
 
 
@@ -163,12 +161,17 @@ shp_flk_simple <- ms_simplify(shp_flk, keep = 0.1)
 
 
 # convert polygons into lines:
-flk_coast <- as(shp_flk, "SpatialLinesDataFrame")  # shp_flk_simple?
+flk_coast <- as(shp_flk_simple, "SpatialLinesDataFrame")  # shp_flk?
 
 # specify desired grid resolution (in m):
-# (NB -- use mean nearest neighbour distance between points
-# 'far from' Stanley, rounded to nearest km)
-grid_res <- round(mean_dist_far, digits = -3)
+# (NB -- max nearest neighbour distance between points 'far from' Stanley,
+# rounded to nearest x km [expressed in m], where x = 2^n, where n is an integer;
+# i.e. may be reached via doubling of 2km*2km grid for IUCN area of occurence)
+grid_res <- (2 ^ round(log2( max_dist_far/1000 ))) * 1000
+# round(x, digits = -3)  # simple rounding to nearest 1000
+
+
+
 
 # create grid template for rasterising vector:
 grid_template <- raster(
