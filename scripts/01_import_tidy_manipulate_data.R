@@ -132,9 +132,10 @@ max_dist_far <- all_coords %>%
 
 # Import map data ===================================================
 
-# specify default projection (UTM zone 21S):
+# specify default projection:
 my_proj <-
-  "+proj=utm +zone=21 +south +ellps=WGS84 +datum=WGS84 +units=m +no_defs"
+  "+init=epsg:32721"  # UTM zone 21S
+  # "+proj=utm +zone=21 +south +ellps=WGS84 +datum=WGS84 +units=m +no_defs"
 # (NB -- units in m for rasterisation below)
 # WGS84: "+init=epsg:4326"
 # Robinson: "+proj=robin"
@@ -178,25 +179,32 @@ grid_template <- raster(
   extent(flk_coast), resolution = grid_res, crs = my_proj
 )
 
-# if template x extent is smaller than vector x extent:
-if (
-  diff(as.matrix(extent(grid_template))["x", ]) <
-  diff(as.matrix(extent(flk_coast))["x", ])
-) {
-  # extend template extent by 1 column (to right):
-  grid_template <- modify_raster_margins(grid_template, c(0, 1, 0, 0))
-  # # raster::extend() extends by 1 column on *both* sides:
-  # grid_template <- extend(grid_template, y = c(0, 1))
+# if template xmax is smaller than vector xmax:
+if (xmax(grid_template) < xmax(flk_coast)) {
+  # extend template extent by n columns (to right):
+  ext_xn <- ceiling(  # difference expressed in n columns
+    diff(c(xmax(grid_template), xmax(flk_coast))) / grid_res
+  )
+  ext_x <- extent(grid_template)  # copy template extent
+  # increase xmax by n columns * grid resolution:
+  xmax(ext_x) <- xmax(grid_template) + (ext_xn * grid_res)
+  # update template x extent (and dimensions):
+  grid_template <- extend(grid_template, ext_x)
+  # raster::extend() extends by n columns on *both* sides;
+  # raster::update_raster_margins()
 }
 
-# and if template y extent is smaller than vector y extent:
-if (
-  diff(as.matrix(extent(grid_template))["y", ]) <
-  diff(as.matrix(extent(flk_coast))["y", ])
-) {
-  # extend template extent by 1 row:
-  grid_template <- modify_raster_margins(grid_template, c(0, 1, 0, 0))
-  # grid_template <- extend(grid_template, y = c(1, 0))
+# and if template ymin is greater than vector ymin:
+if (ymin(grid_template) > ymin(flk_coast)) {
+  # extend template extent by n rows (to bottom):
+  ext_yn <- ceiling(  # difference expressed in n rows:
+    diff(c(ymin(flk_coast), ymin(grid_template))) / grid_res
+  )
+  ext_y <- extent(grid_template)  # copy template extent
+  # decrease ymin by n rows * grid resolution:
+  ymin(ext_y) <- ymin(grid_template) - (ext_yn * grid_res)
+  # update template y extent (and dimensions):
+  grid_template <- extend(grid_template, ext_y)
 }
 
 # extract aspect ratio of template (for plotting):
