@@ -39,6 +39,20 @@ dd_specimens_DPLUS068 <- read_csv(
 
 
 
+# Import map data ===================================================
+
+# import Falkland Islands coastline shapefile (polygons):
+shp_flk <- readOGR(
+  "./data/map/intermediate/flk_coastline_osm_wgs84_poly.shp",
+  layer = "flk_coastline_osm_wgs84_poly"
+)
+
+# reproject to specified projection:
+shp_flk <- spTransform(shp_flk, CRS(my_proj))
+
+
+
+
 # Manipulate specimens data =========================================
 
 # ~ historical:
@@ -105,7 +119,7 @@ taxa <- taxa[order(taxa)]  # sort in alphabetical order
 # specify coordinates for Stanley (see georeferencing protocol):
 stanley_coords <- t(matrix(c(-57.85954, -51.69458)))  # x, y
 
-# create table of all unique coordinates:
+# create table of all unique coordinates with small extent:
 all_coords <- dd_specimens %>%
   # extract all unique lat-long combinations:
   distinct_at(vars(lon, lat), .keep_all = TRUE) %>%
@@ -119,36 +133,25 @@ all_coords <- dd_specimens %>%
   # select coordinate, extent and distance columns only:
   dplyr::select(lon, lat, extent, dist_stanley)
 
-# calculate maximum nearest neighbour distance (in m)
+
+# subset coordinates 'near to' and 'far from' Stanley,
+nf_dist <- 5000  # based on cutoff distance of **5 km** (in  m)
+near_coords <- all_coords %>%  # near coordinates
+  filter(dist_stanley <= nf_dist) %>% dplyr::select(lon, lat)
+far_coords <- all_coords %>%  # far coordinates
+  filter(dist_stanley > nf_dist) %>% dplyr::select(lon, lat)
+
 # separately for coordinates 'near to' and 'far from' Stanley,
-# based on arbitrary cutoff distance of **5 km** (in m):
-max_dist_near <- all_coords %>%
-  filter(dist_stanley <= 5000) %>% nndists %>% max(na.rm = TRUE)
-max_dist_far <- all_coords %>%
-  filter(dist_stanley > 5000) %>% nndists %>% max(na.rm = TRUE)
-
-
-
-
-# Import map data ===================================================
-
-# specify default projection:
-my_proj <-
-  "+init=epsg:32721"  # UTM zone 21S
-  # "+proj=utm +zone=21 +south +ellps=WGS84 +datum=WGS84 +units=m +no_defs"
-# (NB -- units in m for rasterisation below)
-# WGS84: "+init=epsg:4326"
-# Robinson: "+proj=robin"
-# Winkel Tripel: "+proj=wintri"
-
-# import Falkland Islands coastline shapefile (polygons):
-shp_flk <- readOGR(
-  "./data/map/intermediate/flk_coastline_osm_wgs84_poly.shp",
-  layer = "flk_coastline_osm_wgs84_poly"
-)
-
-# reproject to specified projection:
-shp_flk <- spTransform(shp_flk, CRS(my_proj))
+# ~ calculate maximum nearest neighbour distance (in m):
+max_nndist_near <- near_coords %>%
+  nndists %>% max(na.rm = TRUE)
+max_nndist_far <- near_coords %>%
+  nndists %>% max(na.rm = TRUE)
+# ~ calculate square root of mean Voronoi polygon area (in m):
+mean_vpdist_near <- near_coords %>%
+  vparea(my_proj, shp_flk) %>%  mean(na.rm = TRUE) %>% sqrt
+mean_vpdist_far <- far_coords %>%
+  vparea(my_proj, shp_flk) %>% mean(na.rm = TRUE) %>% sqrt
 
 
 
@@ -168,7 +171,7 @@ flk_coast <- as(shp_flk_simple, "SpatialLinesDataFrame")  # shp_flk?
 # (NB -- max nearest neighbour distance between points 'far from' Stanley,
 # rounded to nearest x km [expressed in m], where x = 2^n, where n is an integer;
 # i.e. may be reached via doubling of 2km*2km grid for IUCN area of occurence)
-grid_res <- (2 ^ round(log2( max_dist_far/1000 ))) * 1000
+grid_res <- (2 ^ round(log2( mean_vpdist_far/1000 ))) * 1000
 # round(x, digits = -3)  # simple rounding to nearest 1000
 
 
@@ -191,7 +194,7 @@ if (xmax(grid_template) < xmax(flk_coast)) {
   # update template x extent (and dimensions):
   grid_template <- extend(grid_template, ext_x)
   # raster::extend() extends by n columns on *both* sides;
-  # raster::update_raster_margins()
+  # raster::modify_raster_margins() does not update extent
 }
 
 # and if template ymin is greater than vector ymin:

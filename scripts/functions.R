@@ -39,7 +39,7 @@ ashape_poly <- function(ashp, use_proj)
 
 
 # create convex hull from points as SpatialPolygons object:
-# (requires sp::Polygon, Polygons, SpatialPolygons)
+# (requires sp::Polygon(), Polygons(), SpatialPolygons())
 chull_poly <- function(coords, use_proj)
 {
   ch <- chull(coords)  # calculate convex hull nodes
@@ -77,6 +77,29 @@ nndists <- function (coords_dat)
   nndists <- dists %>% map_dbl(~ min(., na.rm = TRUE))
   
   return(nndists)  # output result
+}
+
+
+
+
+# calculate Voronoi polygon areas for set of coordinates:
+# (requires SDraw::voronoi.polygons())
+vparea <- function (coords_dat, use_proj, bbox_shp)
+{
+  coords <- coords_dat %>%
+    dplyr::select(lon, lat) %>%  # extract coordinates columns
+    # convert into SpatialPoints and reproject:
+    SpatialPoints(CRS("+init=epsg:4326")) %>%  # (NB -- **WGS84**)
+    spTransform(CRS(use_proj))
+  
+  # specify bounding box as SpatialPolygon, using bbox
+  # extracted from specified shapefile, with same projection:
+  bbpoly <- bbox_to_SpatialPolygons(bbox(bbox_shp), CRS(my_proj))
+  
+  # create Voronoi polygons clipped to bbox, as SpatialPolygons:
+  vorpolys <- SDraw::voronoi.polygons(coords, bbpoly)
+  
+  return(area(vorpolys))  # output polygon areas
 }
 
 
