@@ -167,48 +167,25 @@ shp_flk_simple <- ms_simplify(shp_flk, keep = 0.1)
 # convert polygons into lines:
 flk_coast <- as(shp_flk_simple, "SpatialLinesDataFrame")  # shp_flk?
 
+
+
+
+# ~ Rasterise coastline vector --------------------------------------
+
 # specify desired grid resolution (in m):
-# (NB -- max nearest neighbour distance between points 'far from' Stanley,
-# rounded to nearest x km [expressed in m], where x = 2^n, where n is an integer;
-# i.e. may be reached via doubling of 2km*2km grid for IUCN area of occurence)
+# (NB -- mean Voronoi polygon distance for points 'far from' Stanley,
+# rounded to nearest x 10^3 m, where x = 2^n, where n is an integer;
+# i.e. may be reached by doubling 2km*2km grid for IUCN area of occurence)
 grid_res <- (2 ^ round(log2( mean_vpdist_far/1000 ))) * 1000
 # round(x, digits = -3)  # simple rounding to nearest 1000
-
-
-
 
 # create grid template for rasterising vector:
 grid_template <- raster(
   extent(flk_coast), resolution = grid_res, crs = my_proj
 )
 
-# if template xmax is smaller than vector xmax:
-if (xmax(grid_template) < xmax(flk_coast)) {
-  # extend template extent by n columns (to right):
-  ext_xn <- ceiling(  # difference expressed in n columns
-    diff(c(xmax(grid_template), xmax(flk_coast))) / grid_res
-  )
-  ext_x <- extent(grid_template)  # copy template extent
-  # increase xmax by n columns * grid resolution:
-  xmax(ext_x) <- xmax(grid_template) + (ext_xn * grid_res)
-  # update template x extent (and dimensions):
-  grid_template <- extend(grid_template, ext_x)
-  # raster::extend() extends by n columns on *both* sides;
-  # raster::modify_raster_margins() does not update extent
-}
-
-# and if template ymin is greater than vector ymin:
-if (ymin(grid_template) > ymin(flk_coast)) {
-  # extend template extent by n rows (to bottom):
-  ext_yn <- ceiling(  # difference expressed in n rows:
-    diff(c(ymin(flk_coast), ymin(grid_template))) / grid_res
-  )
-  ext_y <- extent(grid_template)  # copy template extent
-  # decrease ymin by n rows * grid resolution:
-  ymin(ext_y) <- ymin(grid_template) - (ext_yn * grid_res)
-  # update template y extent (and dimensions):
-  grid_template <- extend(grid_template, ext_y)
-}
+# extend grid template to cover vector extent:
+grid_template <- grid_extent(grid_template, flk_coast)
 
 # extract aspect ratio of template (for plotting):
 asp <- ncol(grid_template) / nrow(grid_template)
@@ -232,6 +209,8 @@ if ("flk_coast_raster" %in% list.files("./objects")) {
 
 
 
+
+# ===================================================================
 
 # create empty list for storing site coordinates per taxon/year group:
 # ~ create blank list for storing data per year group:
@@ -277,19 +256,8 @@ taxa_rasters <- taxa_coords %>%
 
 
 
-taxa_aoo <- taxa_rasters %>%
-  # calculate **area** of occupancy (in km^2)
-  # for each year group within each taxon:
-  map_depth(2, ~ if (!is.null(.)) {  # only if coordinates not NULL
-    # no. of occupied cells * cell area (in km):
-    cellStats(., sum) * prod(res(.)/10^3)
-  })
-
-
-
-
 taxa_eoo <- taxa_coords %>%
-  # calculate **extent** of occupancy (in km^2)
+  # calculate **extent** of occupancy (in km^2),
   # for each year group within each taxon:
   map_depth(2, ~ if (!is.null(.)) {  # only if coordinates not NULL
     if (length(.) == 3) {  # if 3 points,
@@ -306,3 +274,102 @@ taxa_eoo <- taxa_coords %>%
       area(ashape_poly(ashp, my_proj)) / 10^6
     }
   })
+
+
+
+
+taxa_aoo_raw <- taxa_rasters %>%
+  # calculate raw **area** of occupancy (in km^2) at current resolution,
+  # for each year group within each taxon:
+  map_depth(2, ~ if (!is.null(.)) {  # only if coordinates not NULL
+    # no. of occupied cells * cell area (in km):
+    cellStats(., sum) * prod(res(.)/10^3)
+  })
+
+
+
+
+# extract maximum extent of coastline vector (in m),
+max_ext <- max(  # as maximum of x extent vs. y extent:
+  xmax(flk_coast) - xmin(flk_coast),
+  ymax(flk_coast) - ymin(flk_coast)
+)
+# grid cell size (in m) corresponding to maximum extent,
+# rounded to nearest x 10^3 m, where x = 2^n, where n is an integer
+# (i.e. may be reached by doubling 2km*2km grid for IUCN aoo):
+max_res <- (2 ^ round(log2( max_ext/10^3 ))) * 10^3
+
+# vector of grid cell sizes (in m),
+# from current to maximum, in increments of 2^n:
+xres <- 2 ^ (log2(grid_res/10^3):log2(max_res/10^3)) * 10^3
+
+
+taxa_aoo <- taxa_coords %>%
+  # calculate **area** of occupancy (in km^2) at 2km*2km resolution,
+  # predicted from log-linear model of aoo vs. grid cell size,
+  # for each year group within each taxon:
+  map_depth(2, ~ if (!is.null(.)) {  # only if coordinates not NULL
+    
+    aoo <- map_dbl(  # result as numerical vector, not list
+      xres, function (x) {  # for each grid cell size,
+        # create grid template for rasterising vector:
+        grid_x <- raster(
+          extent(flk_coast), resolution = x, crs = my_proj
+        )
+        # extend grid extent to match vector extent:
+        grid_x <- grid_extent(grid_x, flk_coast)
+        # rasterise points vector based on grid template:
+        spr <- rasterize(., grid_x, field = 1, crs = my_proj)
+        # calculate area of occupancy (no. cells * cell area):
+        aoo <- cellStats(spr, sum) * prod(res(spr)/10^3)
+        
+        return(aoo)  # output area of occupancy
+      })
+    
+    # predict aoo for grid cell size of 2000 m,
+    # based on log-linear model of aoo vs. grid cell size:
+    pred_aoo <- 10 ^ predict(  # (NB -- reverse log10 transform)
+      lm(log10(aoo) ~ log10(xres)),
+      data.frame(xres = 2000)
+    )
+    
+    return(pred_aoo)  # output predicted area of occupancy
+  })
+
+
+
+
+
+# i <- 291  ### test
+# 
+# for(i in taxa) {  
+#   
+#   sp <- taxa_coords[[i]][[5]]
+#   if(!is.null(sp)) {
+#     
+#     aoo <- map_dbl(  # result as numerical vector, not list
+#       xres, function (x) {  # for each grid cell size,
+#         # create grid template for rasterising vector:
+#         grid_x <- raster(
+#           extent(flk_coast), resolution = x, crs = my_proj
+#         )
+#         # extend grid extent to match vector extent:
+#         grid_x <- grid_extent(grid_x, flk_coast)
+#         # rasterise points vector based on grid template:
+#         spr <- rasterize(., grid_x, field = 1, crs = my_proj)
+#         # calculate area of occupancy (no. cells * cell area):
+#         aoo <- cellStats(spr, sum) * prod(res(spr)/10^3)
+#         
+#         return(aoo)  # output area of occupancy
+#       })
+#     
+#     # predict aoo for grid cell size of 2000 m,
+#     # based on log-linear model of aoo vs. grid cell size:
+#     pred_aoo <- 10 ^ predict(  # (NB -- reverse log10 transform)
+#       lm(log10(aoo) ~ log10(xres)),
+#       data.frame(xres = 2000)
+#     )
+#     
+#     return(pred_aoo)  # output predicted area of occupancy
+#   }
+# }

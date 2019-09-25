@@ -4,7 +4,7 @@
 # convert alphahull::ashape into sp::SpatialPolygon object:
 # (see <https://babichmorrowc.github.io/post/2019-03-18-alpha-hull/>)
 # (requires igraph package)
-ashape_poly <- function(ashp, use_proj)
+ashape_poly <- function (ashp, use_proj)
 {
   # create ashape edge graph:
   ashp_graph <- ashp$edges %>% as_tibble %>%
@@ -31,8 +31,7 @@ ashape_poly <- function(ashp, use_proj)
     proj4string = CRS(use_proj)  # specify projection
   )
   
-  # output SpatialPolygons object:
-  return(ashp_spoly)
+  return(ashp_spoly)  # output polygons
 }
 
 
@@ -40,7 +39,7 @@ ashape_poly <- function(ashp, use_proj)
 
 # create convex hull from points as SpatialPolygons object:
 # (requires sp::Polygon(), Polygons(), SpatialPolygons())
-chull_poly <- function(coords, use_proj)
+chull_poly <- function (coords, use_proj)
 {
   ch <- chull(coords)  # calculate convex hull nodes
   # extract path coordinates and convert to polygon:
@@ -51,8 +50,47 @@ chull_poly <- function(coords, use_proj)
     proj4string = CRS(use_proj)  # specify projection
   )
   
-  # output SpatialPolygons object:
-  return(ch_spoly)
+  return(ch_spoly)  # output polygons
+}
+
+
+
+
+# match rasterisation grid template extent to vector extent:
+# (requires raster package)
+grid_extent <- function(grid_use, vector_use) {
+  
+  grid_out <- grid_use  # copy grid template
+  
+  # if template xmax is smaller than vector xmax:
+  if (xmax(grid_out) < xmax(vector_use)) {
+    # extend template extent by n columns (to right):
+    ext_xn <- ceiling(  # difference expressed in n columns
+      diff(c(xmax(grid_out), xmax(vector_use))) / xres(grid_out)
+    )
+    ext_x <- extent(grid_out)  # copy template extent
+    # increase xmax by n columns * grid resolution:
+    xmax(ext_x) <- xmax(grid_out) + (ext_xn * xres(grid_out))
+    # update template x extent (and dimensions):
+    grid_out <- extend(grid_out, ext_x)
+    # raster::extend() extends by n columns on *both* sides;
+    # raster::modify_raster_margins() does not update extent
+  }
+  
+  # and if template ymin is greater than vector ymin:
+  if (ymin(grid_out) > ymin(vector_use)) {
+    # extend template extent by n rows (to bottom):
+    ext_yn <- ceiling(  # difference expressed in n rows:
+      diff(c(ymin(vector_use), ymin(grid_out))) / xres(grid_out)
+    )
+    ext_y <- extent(grid_out)  # copy template extent
+    # decrease ymin by n rows * grid resolution:
+    ymin(ext_y) <- ymin(grid_out) - (ext_yn * xres(grid_out))
+    # update template y extent (and dimensions):
+    grid_out <- extend(grid_out, ext_y)
+  }
+  
+  return(grid_out)  # return grid template
 }
 
 
@@ -76,7 +114,7 @@ nndists <- function (coords_dat)
   # (i.e. minimum value in each column of distance matrix):
   nndists <- dists %>% map_dbl(~ min(., na.rm = TRUE))
   
-  return(nndists)  # output result
+  return(nndists)  # output nearest neighbour distances
 }
 
 
