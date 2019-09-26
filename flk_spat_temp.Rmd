@@ -18,7 +18,7 @@ source('./scripts/01_import_tidy_manipulate_data.R')
 source('./scripts/02_plot_figures.R')
 ```
 
-# Data analysis
+## Data analysis
 
 Georeferencing (i.e. assigning point coordinates and associated extent) of historical records, and other records without specific coordinates, followed the _NHM Georeferencing Guidelines_. Contemporary records with GPS coordinates were assigned an extent of 30 m.
 
@@ -29,3 +29,10 @@ Records were categorised according to year group as follows: `r year_grps`.
 An appropriate grid size (`r grid_res/10^3` km) for assessing the spatial distribution of taxa was based on the square root of the mean Voronoi polyogon area calculated for sites located at least 5 km from the centre of Stanley.
 
 For each taxon, the extent of occurrence (EOO) and area of occupancy (AOO) were determined for the most recent year group (`r year_grps[length(year_grps)]`) in cases where there were records from at least three locations. EOO was calculated as the area of the $\alpha$-shape derived using the `alphashape` function in the R package `alphahull`. AOO based on occupancy of 2 km $\times$ 2 km grid cells was predicted from a log-linear model of AOO versus occupancy for a range of grid sizes achieved via successive doubling of the base grid size, following _IUCN Red List guidelines_.
+
+
+
+
+## Figures
+
+![Temporal distribution of Falkland Islands seaweed specimen records included in this study.](./figures/histogram.pdf)
