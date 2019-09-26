@@ -228,7 +228,7 @@ names(taxa_coords) <- taxa  # name list entries according to taxa
 # j <- year_grps[1]  ### test
 
 for (i in taxa) {  # for each taxon,
-  # filter specimen data for this taxon:
+  # subset specimen data for this taxon:
   taxon_dat <- dd_specimens %>% filter(det_name == i)
   for (j in year_grps) {  # for each year group,
     # only if year group represented in taxon data:
@@ -342,9 +342,30 @@ taxa_aoo <- taxa_coords %>%
 
 
 
-# # extract unique combinations of taxon, site, year and collector:
-# dd_specimens %>%
-#   distinct_at(vars(coll, year_grp, lat, lon, det_name))
+taxa_st <- map(taxa, function (x) {  # for each taxon,
+  # create table of number of records per year group vs. site:
+  dd_specimens %>%
+    # create new factor column for site (combined lon and lat):
+    # (NB -- round to 5 decimal places for neatness)
+    mutate(site = factor(
+      paste(formatC(lon, 5, format = "f"), formatC(lat, 5, format = "f"))
+    )) %>%
+    # subset specimen data for this taxon:
+    filter(det_name == x) %>%
+    # extract unique combinations of site, year and collector:
+    distinct_at(vars(coll, year_grp, site)) %>%
+    # group by site and year group (NB -- keep group levels):
+    group_by(site, year_grp, .drop = FALSE) %>%
+    # calculate number of rows per group:
+    summarise(n = n()) %>%
+    # widen into table of year group vs. site:
+    pivot_wider(  # (instead of gather())
+      names_from = year_grp, values_from = n,
+      values_fill = list(n = 0)
+    ) %>%
+    # convert site column to rownames:
+    column_to_rownames("site")
+}) %>% set_names(taxa)  # name list elements
 
 
 
@@ -364,7 +385,7 @@ names(site_taxa) <- sites  # name list entries according to sites
 # j <- year_grps[5]  ### test
 
 for (i in sites) {  # for each site,
-  # filter specimen data for this site:
+  # subset specimen data for this site:
   site_dat <- dd_specimens %>% filter(paste(lon, lat) == i)
   for (j in year_grps) {  # for each year group,
     # only if year group represented in site data:
