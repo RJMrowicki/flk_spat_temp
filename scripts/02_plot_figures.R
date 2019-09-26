@@ -1,6 +1,11 @@
 # flk_spat_temp
 # plot figures
 
+mar_map <- c(0, 0, 0, 0)  # specify map margins
+
+
+
+
 # Summary histogram =================================================
 
 # open .pdf plotting device:
@@ -40,7 +45,7 @@ pdf(
 
 
 # set plotting parameters:
-par(mar = rep(0.1, 4))  # narrow outer margins
+par(mar = mar_map) # outer margins
 
 plot(  # plot raster cell underlay
   rasterToPolygons(flk_coast_raster),  # as polygons
@@ -70,7 +75,7 @@ pdf(
 
 
 # set plotting parameters:
-par(mar = rep(0.1, 4))  # narrow outer margins
+par(mar = mar_map)  # outer margins
 
 # create plots:
 for (i in taxa) {  # for each taxon,

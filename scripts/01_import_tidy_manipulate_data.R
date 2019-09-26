@@ -316,7 +316,7 @@ taxa_aoo <- taxa_coords %>%
         grid_x <- raster(
           extent(flk_coast), resolution = x, crs = my_proj
         )
-        # extend grid extent to match vector extent:
+        # increase grid extent to match vector extent:
         grid_x <- grid_extent(grid_x, flk_coast)
         # rasterise points vector based on grid template:
         spr <- rasterize(., grid_x, field = 1, crs = my_proj)
@@ -339,24 +339,23 @@ taxa_aoo <- taxa_coords %>%
 
 
 
-
-# i <- 291  ### test
+# i <- taxa[299]  ### test
 # 
-# for(i in taxa) {  
-#   
+# for(i in taxa) {
+# 
 #   sp <- taxa_coords[[i]][[5]]
 #   if(!is.null(sp)) {
-#     
+# 
 #     aoo <- map_dbl(  # result as numerical vector, not list
 #       xres, function (x) {  # for each grid cell size,
 #         # create grid template for rasterising vector:
 #         grid_x <- raster(
 #           extent(flk_coast), resolution = x, crs = my_proj
 #         )
-#         # extend grid extent to match vector extent:
+#         # increase grid extent to match vector extent:
 #         grid_x <- grid_extent(grid_x, flk_coast)
 #         # rasterise points vector based on grid template:
-#         spr <- rasterize(., grid_x, field = 1, crs = my_proj)
+#         spr <- rasterize(sp, grid_x, field = 1, crs = my_proj)
 #         # calculate area of occupancy (no. cells * cell area):
 #         aoo <- cellStats(spr, sum) * prod(res(spr)/10^3)
 #         
@@ -369,7 +368,14 @@ taxa_aoo <- taxa_coords %>%
 #       lm(log10(aoo) ~ log10(xres)),
 #       data.frame(xres = 2000)
 #     )
-#     
+# 
 #     return(pred_aoo)  # output predicted area of occupancy
 #   }
 # }
+# 
+# plot(
+#   log10(aoo) ~ log10(xres),
+#   xlim = c(log10(2000), log10(max(xres))),
+#   ylim = c(log10(pred_aoo), log10(max(aoo)))
+# )
+# points(log10(2000), log10(pred_aoo), col = "red")
