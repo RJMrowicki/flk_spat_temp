@@ -257,7 +257,7 @@ taxa_rasters <- taxa_coords %>%
 
 
 taxa_eoo <- taxa_coords %>%
-  # calculate **extent** of occupancy (in km^2),
+  # calculate **extent** of occurence (in km^2),
   # for each year group within each taxon:
   map_depth(2, ~ if (!is.null(.)) {  # only if coordinates not NULL
     if (length(.) == 3) {  # if 3 points,
