@@ -20,15 +20,15 @@ source('./scripts/02_plot_figures.R')
 
 ## Data analysis
 
-Georeferencing (i.e. assigning point coordinates and associated extent) of historical records, and other records without specific coordinates, followed the _NHM Georeferencing Guidelines_. Contemporary records with GPS coordinates were assigned an extent of 30 m.
+Georeferencing (i.e. assigning point coordinates and associated 'extent') of historical records, and other records without specific coordinates, followed the _NHM Georeferencing Guidelines_. Contemporary records with GPS coordinates were assigned an extent of 30 m.
 
 Where collection date was given as a range (e.g. 'from July to November 1910'), the mean of the start and end date was calculated. Where possible, collection date (or date range) for records lacking date information was inferred based on collector and/or expedition (e.g. from '1839 to 1843') for specimens collected by J.D. Hooker or D. Lyall during the Ross Antarctic Expedition.
 
 Records were categorised according to year group as follows: `r year_grps`.
 
-An appropriate grid size (`r grid_res/10^3` km) for assessing the spatial distribution of taxa was based on the square root of the mean Voronoi polyogon area calculated for sites located at least 5 km from the centre of Stanley.
+An appropriate grid size (`r grid_res/10^3` km) for assessing the spatial distribution of taxa was based on the square root of the mean Voronoi polyogon area calculated for all sites (for which 'extent' $\leq$ 500 m) located at least 5 km from the centre of Stanley.
 
-For each taxon, the extent of occurrence (EOO) and area of occupancy (AOO) were determined for the most recent year group (`r year_grps[length(year_grps)]`) in cases where there were records from at least three locations. EOO was calculated as the area of the $\alpha$-shape derived using the `alphashape` function in the R package `alphahull`. AOO based on occupancy of 2 km $\times$ 2 km grid cells was predicted from a log-linear model of AOO versus occupancy for a range of grid sizes achieved via successive doubling of the base grid size, following _IUCN Red List guidelines_.
+For each taxon, the extent of occurrence (EOO) and area of occupancy (AOO) were determined for the most recent year group (`r year_grps[length(year_grps)]`) in cases where there were records from at least three locations. EOO was calculated as the area of the $\alpha$-shape derived using the `alphashape` function in the R package `alphahull`, with $\alpha$ arbitrarily defined as the spatial extent of records multiple by three. AOO based on occupancy of 2 km $\times$ 2 km grid cells was predicted from a log-linear model of AOO versus occupancy for a range of grid sizes achieved via successive doubling of the base grid size, following _IUCN Red List guidelines_.
 
 
 

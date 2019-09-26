@@ -63,12 +63,15 @@ use_dd_specimens_herb <- dd_specimens_herb %>%
       list(fromY_new, toY_new),  # list of vectors to pass to function
       ~ year(mean(c(...), na.rm = TRUE))  # c(...) converts elements into vector
     )) %>%
-  # rename coordinates and extent columns:
-  rename(lat = decLat_new, lon = decLon_new, extent = extent_m) %>%
+  # rename coordinates, extent and collector columns:
+  rename(
+    lat = decLat_new, lon = decLon_new,
+    extent = extent_m, coll = collector_new
+  ) %>%
   # exclude any rows with NA in either year or coordinate columns:
   filter_at(vars(year, lat, lon), all_vars(!is.na(.))) %>%
   # extract columns for name, year and coordinates:
-  dplyr::select(det_name, year, lat, lon, extent)
+  dplyr::select(det_name, year, coll, lat, lon, extent)
 
 
 # ~ contemporary:
@@ -82,7 +85,7 @@ use_dd_specimens_DPLUS068 <- dd_specimens_DPLUS068 %>%
   # create column for extent (30m for GPS coordinates):
   mutate(extent = 30) %>%
   # extract columns for group, name, year, coordinates and extent:
-  dplyr::select(det_grp, det_name, year, lat, lon, extent)
+  dplyr::select(det_grp, det_name, year, coll, lat, lon, extent)
 
 
 # combine historical & contemporary data:
@@ -93,16 +96,18 @@ dd_specimens <- bind_rows(use_dd_specimens_herb, use_dd_specimens_DPLUS068)
 
 # specify year range (for extracting min and max):
 year_range <- range(dd_specimens$year, na.rm = TRUE)
-
 # determine year group breaks:
 breaks <- c(year_range[1], seq(1850, 2000, 50), year_range[2])
-
+# create new column in specimens data for year group:
 dd_specimens <- dd_specimens %>%
-  # create new column for year group:
   mutate(year_grp = cut(year, breaks, include.lowest = TRUE, dig.lab = 4))
 
 # extract year group levels:
 year_grps <- levels(dd_specimens$year_grp)
+
+# extract unique sites (combined lon and lat):
+sites <- dd_specimens %>%
+  distinct_at(vars(lon, lat)) %>% pmap_chr(paste)
 
 
 
@@ -143,10 +148,8 @@ far_coords <- all_coords %>%  # far coordinates
 
 # separately for coordinates 'near to' and 'far from' Stanley,
 # ~ calculate maximum nearest neighbour distance (in m):
-max_nndist_near <- near_coords %>%
-  nndists %>% max(na.rm = TRUE)
-max_nndist_far <- near_coords %>%
-  nndists %>% max(na.rm = TRUE)
+max_nndist_near <- near_coords %>% nndists %>% max(na.rm = TRUE)
+max_nndist_far <- near_coords %>% nndists %>% max(na.rm = TRUE)
 # ~ calculate square root of mean Voronoi polygon area (in m):
 mean_vpdist_near <- near_coords %>%
   vparea(my_proj, shp_flk) %>%  mean(na.rm = TRUE) %>% sqrt
@@ -210,7 +213,7 @@ if ("flk_coast_raster" %in% list.files("./objects")) {
 
 
 
-# ===================================================================
+# Species-based analysis ============================================
 
 # create empty list for storing site coordinates per taxon/year group:
 # ~ create blank list for storing data per year group:
@@ -339,43 +342,47 @@ taxa_aoo <- taxa_coords %>%
 
 
 
-# i <- taxa[299]  ### test
-# 
-# for(i in taxa) {
-# 
-#   sp <- taxa_coords[[i]][[5]]
-#   if(!is.null(sp)) {
-# 
-#     aoo <- map_dbl(  # result as numerical vector, not list
-#       xres, function (x) {  # for each grid cell size,
-#         # create grid template for rasterising vector:
-#         grid_x <- raster(
-#           extent(flk_coast), resolution = x, crs = my_proj
-#         )
-#         # increase grid extent to match vector extent:
-#         grid_x <- grid_extent(grid_x, flk_coast)
-#         # rasterise points vector based on grid template:
-#         spr <- rasterize(sp, grid_x, field = 1, crs = my_proj)
-#         # calculate area of occupancy (no. cells * cell area):
-#         aoo <- cellStats(spr, sum) * prod(res(spr)/10^3)
-#         
-#         return(aoo)  # output area of occupancy
-#       })
-#     
-#     # predict aoo for grid cell size of 2000 m,
-#     # based on log-linear model of aoo vs. grid cell size:
-#     pred_aoo <- 10 ^ predict(  # (NB -- reverse log10 transform)
-#       lm(log10(aoo) ~ log10(xres)),
-#       data.frame(xres = 2000)
-#     )
-# 
-#     return(pred_aoo)  # output predicted area of occupancy
-#   }
-# }
-# 
-# plot(
-#   log10(aoo) ~ log10(xres),
-#   xlim = c(log10(2000), log10(max(xres))),
-#   ylim = c(log10(pred_aoo), log10(max(aoo)))
-# )
-# points(log10(2000), log10(pred_aoo), col = "red")
+# # extract unique combinations of taxon, site, year and collector:
+# dd_specimens %>%
+#   distinct_at(vars(coll, year_grp, lat, lon, det_name))
+
+
+
+
+# Site-based analysis ===============================================
+
+# create empty list for storing taxa per site/year group:
+# ~ create blank list for storing data per year group:
+b <- vector("list", length(year_grps))
+names(b) <- year_grps  # name list entries according to year group
+# ~ create list of year group lists with one entry per site:
+site_taxa <- rep(list(b), length(sites))
+names(site_taxa) <- sites  # name list entries according to sites
+
+
+# i <- sites[1]  ### test
+# j <- year_grps[5]  ### test
+
+for (i in sites) {  # for each site,
+  # filter specimen data for this site:
+  site_dat <- dd_specimens %>% filter(paste(lon, lat) == i)
+  for (j in year_grps) {  # for each year group,
+    # only if year group represented in site data:
+    if (j %in% site_dat$year_grp) {
+      # assign to corresponding list item:
+      site_taxa[[i]][[j]] <- site_dat %>%
+        # filter site data for this year group:
+        filter(year_grp == j) %>%
+        # extract unique taxa associated with specimens:
+        distinct(det_name)
+    }
+  }
+}
+
+
+
+
+site_rich <- site_taxa %>%
+  # calculate richness (total no. of taxa),
+  # for each year group within each site:
+  map_depth(2, ~ if (!is.null(.)) { nrow(.) })
