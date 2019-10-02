@@ -34,6 +34,67 @@ dev.off()
 
 
 
+# Coordinates map ===================================================
+
+# open .pdf plotting device:
+pdf(
+  "./figures/coords_map.pdf",
+  # adjust height according to raster aspect ratio:
+  width = 18/2.54, height = (18/asp)/2.54
+)
+
+
+# set plotting parameters:
+par(mar = mar_map) # outer margins
+
+# ~ all coordinates:
+
+# plot simplified flk polygon shapefile:
+plot(shp_flk, border = grey(0.5), lwd = 1)
+
+# add circles representing extent for all coordinates:
+symbols(
+  coordinates(plot_coords),
+  circles = all_coords$extent, inches = FALSE,
+  add = TRUE, fg = NULL,
+  bg = adjustcolor("royalblue", alpha = 0.1)
+)
+
+# add points for all coordinates:
+points(
+  plot_coords,
+  pch = 21, col = "white", bg = "royalblue", cex = 1
+)
+
+# ~ coordinates 'near to' Stanley:
+
+# plot (unsimplified) flk polygon shapefile:
+plot(
+  shp_flk,
+  xlim = stanley_limits[[1]], ylim = stanley_limits[[2]],
+  col = grey(0.75, alpha = 0.5), border = grey(0.5), lwd = 1
+)
+
+# add circles representing extent for all coordinates:
+symbols(
+  coordinates(plot_coords),
+  circles = all_coords$extent, inches = FALSE,
+  add = TRUE, fg = NULL,
+  bg = adjustcolor("royalblue", alpha = 0.1)
+)
+
+# add points for all coordinates:
+points(
+  plot_coords,
+  pch = 21, col = "white", bg = "royalblue", cex = 1
+)
+
+
+dev.off()  # close .pdf plotting device
+
+
+
+
 # Base map ==========================================================
 
 # open .pdf plotting device:

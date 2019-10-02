@@ -121,14 +121,30 @@ taxa <- taxa[order(taxa)]  # sort in alphabetical order
 
 
 
+# specify limit of georeferencing 'extent' (in m),
+# below which points can be assigned to a 'location':
+ext_lim <- 50000  # 50 km
+# (i.e. excludes 'Falkland Islands', 'E Falkland', 'W Falkland')
+
 # specify coordinates for Stanley (see georeferencing protocol):
 stanley_coords <- t(matrix(c(-57.85954, -51.69458)))  # x, y
 
-# create table of all unique coordinates with small extent:
+# determine x and y limits for Stanley (in current projection),
+# based on cutoff distance for 'near to' and 'far from':
+stanley_limits <- stanley_coords %>%
+  # convert into SpatialPoints and reproject:
+  SpatialPoints(CRS("+init=epsg:4326")) %>%
+  spTransform(CRS(my_proj)) %>%
+  coordinates %>%  # extract coordinates
+  # calculate xlim and ylim, as +/- cutoff distance:
+  map(~ c(.x - nf_dist, .x + nf_dist))
+
+
+# create table of all unique coordinates with suitable extent:
 all_coords <- dd_specimens %>%
   # extract all unique lat-long combinations:
   distinct_at(vars(lon, lat), .keep_all = TRUE) %>%
-  filter(extent <= 500) %>%  # (NB -- **extent <= 500 m**)
+  filter(extent <= ext_lim) %>% 
   # calculate distance to Stanley (in m):
   mutate(dist_stanley = pmap_dbl(  # pmap() instead of apply()
     list(lon, lat),  # list of vectors to pass to function,
@@ -139,6 +155,17 @@ all_coords <- dd_specimens %>%
   dplyr::select(lon, lat, extent, dist_stanley)
 
 
+# extract all coordinates as spatial points:
+plot_coords <- all_coords %>%
+  # select coordinates columns only:
+  dplyr::select(lon, lat) %>%
+  # reproject to 
+  SpatialPoints(CRS("+init=epsg:4326")) %>%
+  spTransform(CRS(my_proj))
+
+
+
+
 # subset coordinates 'near to' and 'far from' Stanley,
 nf_dist <- 5000  # based on cutoff distance of **5 km** (in  m)
 near_coords <- all_coords %>%  # near coordinates
@@ -146,10 +173,13 @@ near_coords <- all_coords %>%  # near coordinates
 far_coords <- all_coords %>%  # far coordinates
   filter(dist_stanley > nf_dist) %>% dplyr::select(lon, lat)
 
+
 # separately for coordinates 'near to' and 'far from' Stanley,
+
 # ~ calculate maximum nearest neighbour distance (in m):
 max_nndist_near <- near_coords %>% nndists %>% max(na.rm = TRUE)
 max_nndist_far <- near_coords %>% nndists %>% max(na.rm = TRUE)
+
 # ~ calculate square root of mean Voronoi polygon area (in m):
 mean_vpdist_near <- near_coords %>%
   vparea(my_proj, shp_flk) %>%  mean(na.rm = TRUE) %>% sqrt
