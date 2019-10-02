@@ -50,7 +50,7 @@ par(mar = mar_map) # outer margins
 # ~ all coordinates:
 
 # plot simplified flk polygon shapefile:
-plot(shp_flk, border = grey(0.5), lwd = 1)
+plot(shp_flk_simple, border = grey(0.5), lwd = 1)
 
 # add circles representing extent for all coordinates:
 symbols(
@@ -72,7 +72,7 @@ points(
 plot(
   shp_flk,
   xlim = stanley_limits[[1]], ylim = stanley_limits[[2]],
-  col = grey(0.75, alpha = 0.5), border = grey(0.5), lwd = 1
+  col = grey(0.75, alpha = 0.75), border = grey(0.5), lwd = 1
 )
 
 # add circles representing extent for all coordinates:

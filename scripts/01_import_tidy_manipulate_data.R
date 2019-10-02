@@ -63,15 +63,16 @@ use_dd_specimens_herb <- dd_specimens_herb %>%
       list(fromY_new, toY_new),  # list of vectors to pass to function
       ~ year(mean(c(...), na.rm = TRUE))  # c(...) converts elements into vector
     )) %>%
-  # rename coordinates, extent and collector columns:
+  # rename collector, coordinates and extent columns:
   rename(
-    lat = decLat_new, lon = decLon_new,
-    extent = extent_m, coll = collector_new
+    coll = collector_new,
+    lat = decLat_new, lon = decLon_new, extent = extent_m
   ) %>%
   # exclude any rows with NA in either year or coordinate columns:
   filter_at(vars(year, lat, lon), all_vars(!is.na(.))) %>%
-  # extract columns for name, year and coordinates:
-  dplyr::select(det_name, year, coll, lat, lon, extent)
+  # extract columns for name, year, collector, location group,
+  # coordinates and extent:
+  dplyr::select(det_name, year, coll, loc_grp, lat, lon, extent)
 
 
 # ~ contemporary:
@@ -84,8 +85,11 @@ use_dd_specimens_DPLUS068 <- dd_specimens_DPLUS068 %>%
   rename(lat = lat_mean, lon = long_mean) %>%
   # create column for extent (30m for GPS coordinates):
   mutate(extent = 30) %>%
-  # extract columns for group, name, year, coordinates and extent:
-  dplyr::select(det_grp, det_name, year, coll, lat, lon, extent)
+  # extract columns for group, name, year, collector,
+  # location group, coordinates and extent:
+  dplyr::select(
+    det_grp, det_name, year, coll, loc_grp, lat, lon, extent
+  )
 
 
 # combine historical & contemporary data:
@@ -105,6 +109,11 @@ dd_specimens <- dd_specimens %>%
 # extract year group levels:
 year_grps <- levels(dd_specimens$year_grp)
 
+# extract unique location groups:
+loc_grps <- dd_specimens %>%
+  # arrange alphabetically, drop NAs, convert to vector:
+  distinct(loc_grp) %>% drop_na %>% arrange %>% pull
+
 # extract unique sites (combined lon and lat):
 sites <- dd_specimens %>%
   distinct_at(vars(lon, lat)) %>% pmap_chr(paste)
@@ -114,9 +123,9 @@ sites <- dd_specimens %>%
 
 # create vector of taxa (NB -- based on determined **name**)
 # as a basis for analysing 'per taxon' distribution data:
-taxa <- unique(dd_specimens$det_name)
-taxa <- taxa[!is.na(taxa)]  # remove 'NA' category
-taxa <- taxa[order(taxa)]  # sort in alphabetical order
+taxa <- dd_specimens %>%
+  # arrange alphabetically, drop NAs, convert to vector:
+  distinct(det_name) %>% drop_na %>% arrange %>% pull
 
 
 
