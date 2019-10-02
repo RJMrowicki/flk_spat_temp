@@ -380,7 +380,7 @@ taxa_aoo <- taxa_coords %>%
 
 
 
-x <- taxa[283] ### test
+# x <- taxa[172] ### test
 
 taxa_st <- map(taxa, function (x) {  # for each taxon,
   # create table of number of records per year group vs. location:
@@ -396,7 +396,8 @@ taxa_st <- map(taxa, function (x) {  # for each taxon,
     )) %>%
     # subset specimen data for this taxon:
     filter(det_name == x) %>%
-    # extract unique combinations of collector, **year** and **site**:
+    # extract unique combinations of collector, **year** and **site**
+    # (= collecting 'events' [= 'records']):
     distinct_at(vars(coll, year, site), .keep_all = TRUE) %>%
     # group by **location** and **year group** (NB -- keep factor levels):
     group_by(loc_grp, year_grp, .drop = FALSE) %>%
@@ -408,7 +409,9 @@ taxa_st <- map(taxa, function (x) {  # for each taxon,
       values_fill = list(n = 0)
     ) %>%
     # convert location column to rownames:
-    column_to_rownames("loc_grp")
+    column_to_rownames("loc_grp") %>%
+    # add column and row sums as new row and column, respectively:
+    rbind(TOTAL = colSums(.)) %>% cbind(TOTAL = rowSums(.))
 }) %>% set_names(taxa)  # name list elements
 
 
