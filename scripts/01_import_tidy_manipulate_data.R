@@ -112,7 +112,7 @@ year_grps <- levels(dd_specimens$year_grp)
 # extract unique location groups:
 loc_grps <- dd_specimens %>%
   # arrange alphabetically, drop NAs, convert to vector:
-  distinct(loc_grp) %>% drop_na %>% arrange %>% pull
+  distinct(loc_grp) %>% drop_na %>% arrange(loc_grp) %>% pull
 
 # extract unique sites (combined lon and lat):
 sites <- dd_specimens %>%
@@ -125,7 +125,7 @@ sites <- dd_specimens %>%
 # as a basis for analysing 'per taxon' distribution data:
 taxa <- dd_specimens %>%
   # arrange alphabetically, drop NAs, convert to vector:
-  distinct(det_name) %>% drop_na %>% arrange %>% pull
+  distinct(det_name) %>% drop_na %>% arrange(det_name) %>% pull
 
 
 
@@ -137,16 +137,6 @@ ext_lim <- 50000  # 50 km
 
 # specify coordinates for Stanley (see georeferencing protocol):
 stanley_coords <- t(matrix(c(-57.85954, -51.69458)))  # x, y
-
-# determine x and y limits for Stanley (in current projection),
-# based on cutoff distance for 'near to' and 'far from':
-stanley_limits <- stanley_coords %>%
-  # convert into SpatialPoints and reproject:
-  SpatialPoints(CRS("+init=epsg:4326")) %>%
-  spTransform(CRS(my_proj)) %>%
-  coordinates %>%  # extract coordinates
-  # calculate xlim and ylim, as +/- cutoff distance:
-  map(~ c(.x - nf_dist, .x + nf_dist))
 
 
 # create table of all unique coordinates with suitable extent:
@@ -182,9 +172,18 @@ near_coords <- all_coords %>%  # near coordinates
 far_coords <- all_coords %>%  # far coordinates
   filter(dist_stanley > nf_dist) %>% dplyr::select(lon, lat)
 
+# determine x and y limits for Stanley (in current projection),
+# based on cutoff distance for 'near to' and 'far from':
+stanley_limits <- stanley_coords %>%
+  # convert into SpatialPoints and reproject:
+  SpatialPoints(CRS("+init=epsg:4326")) %>%
+  spTransform(CRS(my_proj)) %>%
+  coordinates %>%  # extract coordinates
+  # calculate xlim and ylim, as +/- cutoff distance:
+  map(~ c(.x - nf_dist, .x + nf_dist))
+
 
 # separately for coordinates 'near to' and 'far from' Stanley,
-
 # ~ calculate maximum nearest neighbour distance (in m):
 max_nndist_near <- near_coords %>% nndists %>% max(na.rm = TRUE)
 max_nndist_far <- near_coords %>% nndists %>% max(na.rm = TRUE)
@@ -381,9 +380,15 @@ taxa_aoo <- taxa_coords %>%
 
 
 
+x <- taxa[283] ### test
+
 taxa_st <- map(taxa, function (x) {  # for each taxon,
-  # create table of number of records per year group vs. site:
+  # create table of number of records per year group vs. location:
   dd_specimens %>%
+    # remove rows for which loc_grp is NA:
+    filter(!is.na(loc_grp)) %>%
+    # convert loc_grp from character to factor:
+    mutate(loc_grp = factor(loc_grp)) %>%
     # create new factor column for site (combined lon and lat):
     # (NB -- round to 5 decimal places for neatness)
     mutate(site = factor(
@@ -391,19 +396,19 @@ taxa_st <- map(taxa, function (x) {  # for each taxon,
     )) %>%
     # subset specimen data for this taxon:
     filter(det_name == x) %>%
-    # extract unique combinations of site, year and collector:
-    distinct_at(vars(coll, year_grp, site)) %>%
-    # group by site and year group (NB -- keep group levels):
-    group_by(site, year_grp, .drop = FALSE) %>%
+    # extract unique combinations of collector, **year** and **site**:
+    distinct_at(vars(coll, year, site), .keep_all = TRUE) %>%
+    # group by **location** and **year group** (NB -- keep factor levels):
+    group_by(loc_grp, year_grp, .drop = FALSE) %>%
     # calculate number of rows per group:
     summarise(n = n()) %>%
-    # widen into table of year group vs. site:
+    # widen into table of year group vs. location group:
     pivot_wider(  # (instead of gather())
       names_from = year_grp, values_from = n,
       values_fill = list(n = 0)
     ) %>%
-    # convert site column to rownames:
-    column_to_rownames("site")
+    # convert location column to rownames:
+    column_to_rownames("loc_grp")
 }) %>% set_names(taxa)  # name list elements
 
 
