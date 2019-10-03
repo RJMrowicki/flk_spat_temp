@@ -174,7 +174,7 @@ all_coords <- dd_specimens %>%
 plot_coords <- all_coords %>%
   # select coordinates columns only:
   dplyr::select(lon, lat) %>%
-  # reproject to 
+  # reproject to current projection:
   SpatialPoints(CRS("+init=epsg:4326")) %>%
   spTransform(CRS(my_proj))
 
@@ -530,3 +530,19 @@ site_rich_grps <- site_rich %>%
     vars(year_grps),
     ~ cut(., rich_breaks, include.lowest = TRUE, na.rm = TRUE)
   )
+
+
+# extract richness group levels:
+rich_grps <- site_rich_grps %>%
+  dplyr::select(year_grps) %>% combine %>% levels
+
+
+
+
+# convert coordinats to spatial points for plotting:
+plot_coords_rich <- site_rich %>%
+  # select coordinates columns only:
+  dplyr::select(lon, lat) %>%
+  # reproject to current projection:
+  SpatialPoints(CRS("+init=epsg:4326")) %>%
+  spTransform(CRS(my_proj))

@@ -177,3 +177,70 @@ for (i in taxa) {  # for each taxon,
 
 # close .pdf plotting device:
 dev.off()
+
+
+
+
+# Richness map ======================================================
+
+# create custom colour palette for richness groups:
+rich_grp_colours <- colorRampPalette(
+  c("royalblue", "red"),
+  alpha = TRUE, bias = 1) # alter spread of colours
+
+# create point style lookup table for richness group:
+pt_sty_rich <- tibble(
+  rich_grp = rich_grps,
+  pch = 15:18,
+  # col = c("blue", "green", "yellow", "red")
+  col = rich_grp_colours(length(rich_grps))
+)
+
+
+
+
+# open .pdf plotting device:
+pdf(
+  "./figures/rich_map.pdf",
+  # adjust height according to raster aspect ratio:
+  width = 18/2.54, height = (18/asp)/2.54
+)
+
+
+# set plotting parameters:
+par(mar = mar_map)  # outer margins
+
+plot(  # plot simplified flk shapefile (polygons)
+  shp_flk_simple, lwd = 0.5
+)
+
+# specify year group to plot:
+plot_year_grp <- year_grps[length(year_grps)]
+
+points(  # add points
+  plot_coords_rich,
+  # symbol and colour according to richness group:
+  pch = pt_sty_rich$pch[
+    match(
+      # (NB -- convert tibble column to vector):
+      pull(site_rich_grps[, plot_year_grp]),
+      pt_sty_rich$rich_grp
+    )],
+  col = pt_sty_rich$col[
+    match(
+      pull(site_rich_grps[, plot_year_grp]),
+      pt_sty_rich$rich_grp
+    )],
+  cex = 1.5
+)
+
+legend(  # add legend for richness group
+  "topright", bty = "n", title = "Richness",
+  legend = pt_sty_rich$rich_grp,
+  pch = pt_sty_rich$pch,
+  col = pt_sty_rich$col
+)
+
+
+# close .pdf plotting device:
+dev.off()
