@@ -101,13 +101,17 @@ dd_specimens <- bind_rows(use_dd_specimens_herb, use_dd_specimens_DPLUS068)
 # specify year range (for extracting min and max):
 year_range <- range(dd_specimens$year, na.rm = TRUE)
 # determine year group breaks:
-breaks <- c(year_range[1], seq(1850, 2000, 50), year_range[2])
+year_breaks <- c(year_range[1], seq(1850, 2000, 50), year_range[2])
 # create new column in specimens data for year group:
 dd_specimens <- dd_specimens %>%
-  mutate(year_grp = cut(year, breaks, include.lowest = TRUE, dig.lab = 4))
+  mutate(year_grp = cut(
+    year, year_breaks, include.lowest = TRUE, dig.lab = 4
+  ))
 
 # extract year group levels:
 year_grps <- levels(dd_specimens$year_grp)
+
+
 
 
 # extract unique location groups:
@@ -115,9 +119,20 @@ loc_grps <- dd_specimens %>%
   # arrange alphabetically, drop NAs, convert to vector:
   distinct(loc_grp) %>% drop_na %>% arrange(loc_grp) %>% pull
 
-# extract unique sites (combined lon and lat):
+
+
+
+dd_specimens <- dd_specimens %>%
+  # create new factor column for site (combined lon and lat):
+  # (NB -- round to 5 decimal places for neatness)
+  mutate(site = paste(
+    formatC(lon, 5, format = "f"), formatC(lat, 5, format = "f"),
+    sep = ", "
+  ))
+
+# extract unique sites:
 sites <- dd_specimens %>%
-  distinct_at(vars(lon, lat)) %>% pmap_chr(paste)
+  distinct(site) %>% arrange(site) %>% pull
 
 
 
@@ -401,11 +416,8 @@ taxa_st <- map(taxa, function (x) {  # for each taxon,
       grep("Unlocated*", levels(factor(.$loc_grp)), value = TRUE),
       after = Inf  # move to end
     )) %>%
-    # create new factor column for site (combined lon and lat):
-    # (NB -- round to 5 decimal places for neatness)
-    mutate(site = factor(
-      paste(formatC(lon, 5, format = "f"), formatC(lat, 5, format = "f"))
-    )) %>%
+    # convert site from character to factor:
+    mutate(site = factor(site)) %>%
     # subset specimen data for this taxon:
     filter(det_name == x) %>%
     # extract unique combinations of collector, **year** and **site**
@@ -431,6 +443,8 @@ taxa_st <- map(taxa, function (x) {  # for each taxon,
 
 # Site-based analysis ===============================================
 
+# ~ Obtain taxa list per site by year group -------------------------
+
 # create empty list for storing taxa per site/year group:
 # ~ create blank list for storing data per year group:
 b <- vector("list", length(year_grps))
@@ -454,7 +468,7 @@ for (i in sites) {  # for each site,
         # filter site data for this year group:
         filter(year_grp == j) %>%
         # extract unique taxa associated with specimens:
-        distinct(det_name)
+        distinct(det_name) %>% pull  # convert to vector
     }
   }
 }
@@ -462,7 +476,57 @@ for (i in sites) {  # for each site,
 
 
 
-site_rich <- site_taxa %>%
-  # calculate richness (total no. of taxa),
-  # for each year group within each site:
-  map_depth(2, ~ if (!is.null(.)) { nrow(.) })
+# ~ Summarise no. of taxa per site by year group --------------------
+
+# site_rich <- site_taxa %>%
+#   # calculate richness (total no. of taxa),
+#   # for each year group within each site:
+#   map_depth(2, ~ if (!is.null(.)) { length(.) })
+
+
+site_rich <- dd_specimens %>%
+  # convert site from character to factor:
+  mutate(site = factor(site)) %>%
+  # extract unique combinations of name, site and year group:
+  distinct_at(vars(det_name, site, year_grp), .keep_all = TRUE) %>%
+  # group by site and year group (NB -- keep factor levels):
+  group_by(site, year_grp, .drop = FALSE) %>%
+  # calculate number of rows per group:
+  summarise(n = n()) %>%
+  # replace 0 with NA:
+  mutate(n = na_if(n, 0)) %>%
+  # widen into table of year group vs. site:
+  pivot_wider(  # (instead of gather())
+    names_from = year_grp, values_from = n,
+    values_fill = list(n = NA)
+  ) %>%
+  # ungroup and convert site from factor to character:
+  ungroup %>% mutate(site = as.character(site)) %>%
+  # add columns from original data frame:
+  left_join(
+    # (NB -- must remove duplicate site rows first)
+    distinct_at(dd_specimens, vars(site), .keep_all = TRUE),
+    by = "site") %>%
+  # select coordinates, location and year group columns:
+  dplyr::select(lon, lat, loc_grp, year_grps)
+
+
+
+
+# # specify richness range:
+# rich_range <- site_rich %>%
+#   dplyr::select(year_grps) %>% range(na.rm = TRUE)
+# # determine richness group breaks manually:
+# rich_breaks <- c(rich_range[1], seq(15, 70, 15), rich_range[2])
+
+# determine richness group breaks based on quartiles:
+rich_breaks <- site_rich %>%
+  dplyr::select(year_grps) %>% as_vector %>% quantile(na.rm = TRUE)
+
+
+# create new table for 'richness group' instead of 'richness':
+site_rich_grps <- site_rich %>%
+  mutate_at(
+    vars(year_grps),
+    ~ cut(., rich_breaks, include.lowest = TRUE, na.rm = TRUE)
+  )
