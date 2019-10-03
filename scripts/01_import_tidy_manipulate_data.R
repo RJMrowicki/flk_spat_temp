@@ -109,6 +109,7 @@ dd_specimens <- dd_specimens %>%
 # extract year group levels:
 year_grps <- levels(dd_specimens$year_grp)
 
+
 # extract unique location groups:
 loc_grps <- dd_specimens %>%
   # arrange alphabetically, drop NAs, convert to vector:
@@ -253,6 +254,8 @@ if ("flk_coast_raster" %in% list.files("./objects")) {
 
 # Species-based analysis ============================================
 
+# ~ Obtain spatial points for taxa by year group --------------------
+
 # create empty list for storing site coordinates per taxon/year group:
 # ~ create blank list for storing data per year group:
 a <- vector("list", length(year_grps))
@@ -296,6 +299,8 @@ taxa_rasters <- taxa_coords %>%
 
 
 
+
+# ~ Calculate extent of occurrence and area of occupancy ------------
 
 taxa_eoo <- taxa_coords %>%
   # calculate **extent** of occurence (in km^2),
@@ -380,6 +385,8 @@ taxa_aoo <- taxa_coords %>%
 
 
 
+# ~ Summarise no. of records by year group vs. location -------------
+
 # x <- taxa[172] ### test
 
 taxa_st <- map(taxa, function (x) {  # for each taxon,
@@ -387,8 +394,13 @@ taxa_st <- map(taxa, function (x) {  # for each taxon,
   dd_specimens %>%
     # remove rows for which loc_grp is NA:
     filter(!is.na(loc_grp)) %>%
-    # convert loc_grp from character to factor:
-    mutate(loc_grp = factor(loc_grp)) %>%
+    # convert loc_grp from character to factor and relevel,
+    # so that "Unlocated" levels are placed at the end:
+    mutate(loc_grp = fct_relevel(
+      loc_grp,  
+      grep("Unlocated*", levels(factor(.$loc_grp)), value = TRUE),
+      after = Inf  # move to end
+    )) %>%
     # create new factor column for site (combined lon and lat):
     # (NB -- round to 5 decimal places for neatness)
     mutate(site = factor(

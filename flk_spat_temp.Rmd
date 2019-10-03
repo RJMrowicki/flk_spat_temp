@@ -30,9 +30,11 @@ An appropriate grid size (`r grid_res/10^3` km) for assessing the spatial distri
 
 For each taxon, the extent of occurrence (EOO) and area of occupancy (AOO) were determined for the most recent year group (`r year_grps[length(year_grps)]`) in cases where there were records from at least three locations. EOO was calculated as the area of the $\alpha$-shape derived using the `alphashape` function in the R package `alphahull`, with $\alpha$ arbitrarily defined as the spatial extent of records multiple by three. AOO based on occupancy of 2 km $\times$ 2 km grid cells was predicted from a log-linear model of AOO versus occupancy for a range of grid sizes achieved via successive doubling of the base grid size, following _IUCN Red List guidelines_.
 
-
+The number of specimen records (whereby each 'record' corresponded to a collection 'event', i.e. unique combination of collector, year and site) were summed for each location (= group of sites) across all year groups, for each taxa.
 
 
 ## Figures
 
 ![Temporal distribution of Falkland Islands seaweed specimen records included in this study.](./figures/histogram.pdf)
+
+![Distribution of historical and contemporary Falkland Islands seaweed specimen records, for which spatial extent $\leq$ `r ext_lim/10^3` km (i.e. excluding unlocated records from 'East Falkland', 'West Falkland', or the 'Falkland Islands'. Circles represent extent assigned through the georeferencing procedure.)](./figures/coords_map.pdf)
