@@ -139,7 +139,7 @@ pdf(
 par(mar = mar_map)  # outer margins
 
 # create plots:
-for (i in taxa) {  # for each taxon,
+for (i in all_taxa) {  # for each taxon,
   
   # extract rasterised point coordinates for this taxon
   # (NB -- **most recent** year group only):

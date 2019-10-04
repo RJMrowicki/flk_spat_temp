@@ -22,9 +22,13 @@ source('./scripts/02_plot_figures.R')
 
 Georeferencing (i.e. assigning point coordinates and associated 'extent') of historical records, and other records without specific coordinates, followed the _NHM Georeferencing Guidelines_. Contemporary records with GPS coordinates were assigned an extent of 30 m.
 
-Where collection date was given as a range (e.g. 'from July to November 1910'), the mean of the start and end date was calculated. Where possible, collection date (or date range) for records lacking date information was inferred based on collector and/or expedition (e.g. from '1839 to 1843') for specimens collected by J.D. Hooker or D. Lyall during the Ross Antarctic Expedition.
+Records with dubious and/or ambiguous localities (e.g. 'Valparaiso and Falklands') were excluded.
 
-Records were categorised according to year group as follows: `r year_grps`.
+Where collection date was given as a range (e.g. 'from July to November 1910'), the mean of the start and end date was calculated. Where possible, collection date (or date range) for records lacking date information was inferred based on collector and/or expedition (e.g. from '1839 to 1843') for specimens collected by J.D. Hooker or D. Lyall during the Ross Antarctic Expedition. Records for which collection date could not be inferred were excluded.
+
+Remaining records were categorised according to year group as follows: `r year_grps`.
+
+Records for specimens collected as 'drift' (i.e. unattached to substratum) were excluded.
 
 An appropriate grid size (`r grid_res/10^3` km) for assessing the spatial distribution of taxa was based on the square root of the mean Voronoi polyogon area calculated for all sites (for which 'extent' $\leq$ `r ext_lim` m) located at least `r nf_dist/10^3` km from the centre of Stanley.
 

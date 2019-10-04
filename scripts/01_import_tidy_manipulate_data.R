@@ -85,6 +85,8 @@ use_dd_specimens_DPLUS068 <- dd_specimens_DPLUS068 %>%
   rename(lat = lat_mean, lon = long_mean) %>%
   # create column for extent (30m for GPS coordinates):
   mutate(extent = 30) %>%
+  # exclude drift specimens:
+  filter(is.na(drift)) %>%
   # extract columns for group, name, year, collector,
   # location group, coordinates and extent:
   dplyr::select(
@@ -137,9 +139,9 @@ sites <- dd_specimens %>%
 
 
 
-# create vector of taxa (NB -- based on determined **name**)
+# create vector of all taxa (NB -- based on determined **name**)
 # as a basis for analysing 'per taxon' distribution data:
-taxa <- dd_specimens %>%
+all_taxa <- dd_specimens %>%
   # arrange alphabetically, drop NAs, convert to vector:
   distinct(det_name) %>% drop_na %>% arrange(det_name) %>% pull
 
@@ -159,6 +161,7 @@ stanley_coords <- t(matrix(c(-57.85954, -51.69458)))  # x, y
 all_coords <- dd_specimens %>%
   # extract all unique lat-long combinations:
   distinct_at(vars(lon, lat), .keep_all = TRUE) %>%
+  # exclude sites with **extent > 50 km**:
   filter(extent <= ext_lim) %>% 
   # calculate distance to Stanley (in m):
   mutate(dist_stanley = pmap_dbl(  # pmap() instead of apply()
@@ -202,7 +205,7 @@ stanley_limits <- stanley_coords %>%
 # separately for coordinates 'near to' and 'far from' Stanley,
 # ~ calculate maximum nearest neighbour distance (in m):
 max_nndist_near <- near_coords %>% nndists %>% max(na.rm = TRUE)
-max_nndist_far <- near_coords %>% nndists %>% max(na.rm = TRUE)
+max_nndist_far <- far_coords %>% nndists %>% max(na.rm = TRUE)
 
 # ~ calculate square root of mean Voronoi polygon area (in m):
 mean_vpdist_near <- near_coords %>%
@@ -276,14 +279,14 @@ if ("flk_coast_raster" %in% list.files("./objects")) {
 a <- vector("list", length(year_grps))
 names(a) <- year_grps  # name list entries according to year group
 # ~ create list of year group lists with one entry per taxon:
-taxa_coords <- rep(list(a), length(taxa))
-names(taxa_coords) <- taxa  # name list entries according to taxa
+taxa_coords <- rep(list(a), length(all_taxa))
+names(taxa_coords) <- all_taxa  # name list entries according to taxa
 
 
-# i <- taxa[1]  ### test
+# i <- all_taxa[1]  ### test
 # j <- year_grps[1]  ### test
 
-for (i in taxa) {  # for each taxon,
+for (i in all_taxa) {  # for each taxon,
   # subset specimen data for this taxon:
   taxon_dat <- dd_specimens %>% filter(det_name == i)
   for (j in year_grps) {  # for each year group,
@@ -404,7 +407,7 @@ taxa_aoo <- taxa_coords %>%
 
 # x <- taxa[172] ### test
 
-taxa_st <- map(taxa, function (x) {  # for each taxon,
+taxa_st <- map(all_taxa, function (x) {  # for each taxon,
   # create table of number of records per year group vs. location:
   dd_specimens %>%
     # remove rows for which loc_grp is NA:
@@ -436,7 +439,7 @@ taxa_st <- map(taxa, function (x) {  # for each taxon,
     column_to_rownames("loc_grp") %>%
     # add column and row sums as new row and column, respectively:
     rbind(TOTAL = colSums(.)) %>% cbind(TOTAL = rowSums(.))
-}) %>% set_names(taxa)  # name list elements
+}) %>% set_names(all_taxa)  # name list elements
 
 
 
@@ -515,13 +518,16 @@ site_rich <- dd_specimens %>%
 
 # # specify richness range:
 # rich_range <- site_rich %>%
-#   dplyr::select(year_grps) %>% range(na.rm = TRUE)
+#   # (NB -- **most recent** year group only)
+#   dplyr::select(year_grps[length(year_grps)]) %>% range(na.rm = TRUE)
 # # determine richness group breaks manually:
 # rich_breaks <- c(rich_range[1], seq(15, 70, 15), rich_range[2])
 
 # determine richness group breaks based on quartiles:
 rich_breaks <- site_rich %>%
-  dplyr::select(year_grps) %>% as_vector %>% quantile(na.rm = TRUE)
+  # (NB -- **most recent** year group only)
+  dplyr::select(year_grps[length(year_grps)]) %>%
+  as_vector %>% quantile(na.rm = TRUE)
 
 
 # create new table for 'richness group' instead of 'richness':
