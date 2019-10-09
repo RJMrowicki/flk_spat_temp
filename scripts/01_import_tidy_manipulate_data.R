@@ -31,6 +31,16 @@ dd_specimens_herb <- dd_specimens_herb %>%
   filter(is.na(excl))
 
 
+# ~ recent (Mystikou 2013):
+dd_specimens_Mystikou <- read_csv(
+  "./data/flk_specimens_Mystikou.csv", na = nas, guess_max = 9999
+)
+
+dd_specimens_Mystikou <- dd_specimens_Mystikou %>%
+  # exclude rows identified in original datasheet:
+  filter(is.na(excl))
+
+
 # ~ contemporary (DPLUS068):
 dd_specimens_DPLUS068 <- read_csv(
   "./data/flk_specimens_DPLUS068.csv", na = nas, guess_max = 9999
@@ -75,6 +85,23 @@ use_dd_specimens_herb <- dd_specimens_herb %>%
   dplyr::select(det_name, year, coll, loc_grp, lat, lon, extent)
 
 
+# ~ recent:
+use_dd_specimens_Mystikou <- dd_specimens_Mystikou %>%
+  # create new column for year:
+  mutate(year = year(date)) %>%
+  # rename group, name and  coordinates columns:
+  rename(
+    det_grp = GROUP, det_name = NAME_new,
+    lat = decLat_gps, lon = decLon_gps) %>%
+  # create column for extent (30 m for GPS coordinates):
+  mutate(extent = 30) %>%
+  # extract columns for group, name, year, collector,
+  # location group, coordinates and extent:
+  dplyr::select(
+    det_grp, det_name, year, coll, loc_grp, lat, lon, extent
+  )
+
+
 # ~ contemporary:
 use_dd_specimens_DPLUS068 <- dd_specimens_DPLUS068 %>%
   # join site data (all columns) via lookup:
@@ -94,8 +121,12 @@ use_dd_specimens_DPLUS068 <- dd_specimens_DPLUS068 %>%
   )
 
 
-# combine historical & contemporary data:
-dd_specimens <- bind_rows(use_dd_specimens_herb, use_dd_specimens_DPLUS068)
+# combine historical, recent & contemporary data:
+dd_specimens <- bind_rows(
+  use_dd_specimens_herb,
+  use_dd_specimens_Mystikou,
+  use_dd_specimens_DPLUS068
+)
 
 
 
@@ -139,10 +170,13 @@ sites <- dd_specimens %>%
 
 
 
-# create vector of all taxa (NB -- based on determined **name**)
-# as a basis for analysing 'per taxon' distribution data:
+# create vectors of all taxon groups and all taxa
+# (NB -- based on determined **name**), as a basis for analysing
+# 'per group' and 'per taxon' distribution data:
+# (arrange alphabetically, drop NAs, convert to vectors)
+all_grps <- dd_specimens %>%
+  distinct(det_grp) %>% drop_na %>% arrange(det_grp) %>% pull
 all_taxa <- dd_specimens %>%
-  # arrange alphabetically, drop NAs, convert to vector:
   distinct(det_name) %>% drop_na %>% arrange(det_name) %>% pull
 
 
