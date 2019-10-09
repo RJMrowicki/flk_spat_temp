@@ -151,7 +151,7 @@ year_grps <- levels(dd_specimens$year_grp)
 
 # extract unique location groups:
 loc_grps <- dd_specimens %>%
-  # arrange alphabetically, drop NAs, convert to vector:
+  # drop NAs, arrange alphabetically, convert to vector:
   distinct(loc_grp) %>% drop_na %>% arrange(loc_grp) %>% pull
 
 
@@ -175,15 +175,27 @@ sites <- dd_specimens %>%
 # create vectors of all taxa and taxon groups
 # (NB -- based on determined **name**), as a basis for analysing
 # 'per taxon' and 'per group' distribution data:
-# (arrange alphabetically, drop NAs, convert to vectors)
+# (drop NAs, arrange alphabetically, convert to vectors)
 all_taxa <- dd_specimens %>%
   distinct(det_name) %>% drop_na %>% arrange(det_name) %>% pull
 all_grps <- dd_specimens %>%
   distinct(det_grp) %>% drop_na %>% arrange(det_grp) %>% pull
 
+
+all_grps_taxa <- map(all_grps, function (x) {  # for each taxon group,
+  # create vector of associated taxa (determined **names**):
+  dd_specimens %>%
+    # subset specimen data for that taxon group:
+    filter(det_grp == x) %>%
+    # extract unique taxon names:
+    distinct(det_name) %>%
+    # drop NAs, sort alphabetically, convert to vector:
+    drop_na %>% arrange(det_name) %>% pull
+}) %>% set_names(all_grps)  # name list elements
+
+
 # specify taxon groups to use in subsequent analyses:
-# (NB -- in 'taxonomic' order)
-use_grps <- c(
+use_grps <- c(  # (NB -- in 'taxonomic' order)
   # Chlorophyta:
   "Prasiola",
   # Rhodophyta:
@@ -325,7 +337,7 @@ if ("flk_coast_raster" %in% list.files("./objects")) {
 
 # Species-based analysis ============================================
 
-# ~ Obtain spatial points for taxa by year group --------------------
+# ~ Obtain coordinates for taxa and groups by year group ------------
 
 # create empty list for storing site coordinates per taxon/year group:
 # ~ create blank list for storing data per year group:
@@ -515,7 +527,7 @@ names(site_taxa) <- sites  # name list entries according to sites
 
 for (i in sites) {  # for each site,
   # subset specimen data for this site:
-  site_dat <- dd_specimens %>% filter(paste(lon, lat) == i)
+  site_dat <- dd_specimens %>% filter(site == i)
   for (j in year_grps) {  # for each year group,
     # only if year group represented in site data:
     if (j %in% site_dat$year_grp) {
