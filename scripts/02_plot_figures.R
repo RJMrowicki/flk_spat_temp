@@ -187,6 +187,87 @@ dev.off()
 
 
 
+# Taxon group maps ==================================================
+
+# create custom colour palette for taxon groups:
+grps_taxa_colours <- colorRampPalette(
+  c("royalblue", "red"),
+  alpha = TRUE, bias = 1) # alter spread of colours
+
+
+
+
+# open .pdf plotting device:
+pdf(
+  "./figures/taxon_group_maps.pdf",
+  # adjust height according to raster aspect ratio:
+  width = 18/2.54, height = (18/asp)/2.54
+)
+
+
+# set plotting parameters:
+par(mar = mar_map)  # outer margins
+
+# create plots:
+for (i in all_grps) {  # for each taxon group,
+  
+  # create vector of taxa within that group:
+  grp_taxa <- all_grps_taxa[[i]]
+  
+  # create point style table for taxon lookup:
+  pt_sty_taxa <- tibble(
+    taxon = grp_taxa,
+    col = grps_taxa_colours(length(grp_taxa))
+  )
+
+  plot(  # plot raster cell underlay (as polygons)
+    rasterToPolygons(flk_coast_raster),
+    border = grey(0.75), lwd = 1
+  )
+  
+  plot(  # add simplified flk polygon shapefile
+    shp_flk_simple, add = TRUE,
+    lwd = 0.5
+  )
+  
+  for (j in grp_taxa) {  # for each taxon,
+    
+    # extract taxon coordinates:
+    # (NB -- **most recent** year group only)
+    taxon_coords <- taxa_coords[[j]][[year_grps[length(year_grps)]]]
+    
+    # only if coordinates/rasters are not NULL :
+    if (!is.null(taxon_coords)) {
+      
+      points(  # add taxon coordinates points
+        taxon_coords,
+        pch = 21,
+        col = "white",
+        bg = pt_sty_taxa$col[pt_sty_taxa$taxon == j],
+        cex = 1.5
+      )
+      
+    }
+  }
+  
+  legend(  # add legend for taxon
+    "bottomright", bty = "n", legend = pt_sty_taxa$taxon,
+    pch = 21, col = "white", pt.bg = pt_sty_taxa$col
+  )
+  
+  legend(  # add taxon group name in top right corner
+    "topright", legend = i, bty = "n", cex = 1
+  )
+  
+}
+
+
+# close .pdf plotting device:
+dev.off()
+
+
+
+
 # Richness map ======================================================
 
 # create custom colour palette for richness groups:
