@@ -223,7 +223,12 @@ for (i in all_grps) {  # for each taxon group,
   if (!is.null(grp_raster)) {
     
     # create vector of taxa within this group:
-    grp_taxa <- all_grps_taxa[[i]]
+    grp_taxa <- grp_coords$det_name %>%
+      # convert to factor and relevel to place "sp. " at the end:
+      fct_relevel(
+        grep("sp. ", levels(factor(.)), value = TRUE),
+        after = Inf  # move to end
+      ) %>% levels
     
     # create point style table for taxon lookup:
     pt_sty_taxa <- tibble(
