@@ -80,9 +80,11 @@ use_dd_specimens_herb <- dd_specimens_herb %>%
   ) %>%
   # exclude any rows with NA in either year or coordinate columns:
   filter_at(vars(year, lat, lon), all_vars(!is.na(.))) %>%
-  # extract columns for name, year, collector, location group,
-  # coordinates and extent:
-  dplyr::select(det_name, year, coll, loc_grp, lat, lon, extent)
+  # extract columns for group, name, year, collector,
+  # location group, coordinates and extent:
+  dplyr::select(
+    det_grp, det_name, year, coll, loc_grp, lat, lon, extent
+  )
 
 
 # ~ recent:
@@ -170,14 +172,31 @@ sites <- dd_specimens %>%
 
 
 
-# create vectors of all taxon groups and all taxa
+# create vectors of all taxa and taxon groups
 # (NB -- based on determined **name**), as a basis for analysing
-# 'per group' and 'per taxon' distribution data:
+# 'per taxon' and 'per group' distribution data:
 # (arrange alphabetically, drop NAs, convert to vectors)
-all_grps <- dd_specimens %>%
-  distinct(det_grp) %>% drop_na %>% arrange(det_grp) %>% pull
 all_taxa <- dd_specimens %>%
   distinct(det_name) %>% drop_na %>% arrange(det_name) %>% pull
+all_grps <- dd_specimens %>%
+  distinct(det_grp) %>% drop_na %>% arrange(det_grp) %>% pull
+
+# specify taxon groups to use in subsequent analyses:
+# (NB -- in 'taxonomic' order)
+use_grps <- c(
+  # Chlorophyta:
+  "Prasiola",
+  # Rhodophyta:
+  "Ahnfeltia", "Ballia", "Nothogenia", "Heterosiphonia",
+  "Bostrychia", "Catenella", "Callophyllis", "Plocamium",
+  "Rhodymeniophycidae",
+  # Ochrophyta:
+  "Dictyotaceae", "Cladostephus", "Halopteris", "Adenocystis",
+  "Dictyosiphon", "Punctaria", "Colpomenia", "Petalonia",
+  "Scytosiphon", "Lessonia", "Splachnidiaceae"
+)
+
+# use_grps %in% all_grps  ### check group names are valid
 
 
 
