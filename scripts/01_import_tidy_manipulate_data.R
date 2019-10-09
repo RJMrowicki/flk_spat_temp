@@ -268,9 +268,9 @@ flk_coast <- as(shp_flk_simple, "SpatialLinesDataFrame")  # shp_flk?
 
 # specify desired grid resolution (in m):
 # (NB -- mean Voronoi polygon distance for points 'far from' Stanley,
-# rounded to nearest x 10^3 m, where x = 2^n, where n is an integer;
+# rounded up to nearest x 10^3 m, where x = 2^n, where n is an integer;
 # i.e. may be reached by doubling 2km*2km grid for IUCN area of occurence)
-grid_res <- (2 ^ round(log2( mean_vpdist_far/1000 ))) * 1000
+grid_res <- (2 ^ ceiling(log2( mean_vpdist_far/1000 ))) * 1000
 # round(x, digits = -3)  # simple rounding to nearest 1000
 
 # create grid template for rasterising vector:
@@ -561,7 +561,8 @@ site_rich <- dd_specimens %>%
 rich_breaks <- site_rich %>%
   # (NB -- **most recent** year group only)
   dplyr::select(year_grps[length(year_grps)]) %>%
-  as_vector %>% quantile(na.rm = TRUE)
+  as_vector %>% quantile(na.rm = TRUE, type = 3)
+  # (NB -- use Type 3 to round to nearest sample value)
 
 
 # create new table for 'richness group' instead of 'richness':

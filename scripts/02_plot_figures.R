@@ -17,12 +17,11 @@ pdf(
 
 # plot histogram of no. of specimens vs. year:
 ggplot(dd_specimens, aes(x = year)) +
-  # 
   geom_histogram(binwidth = 10, boundary = 0) +
-  scale_x_continuous(
+  scale_x_continuous(  # x axis
     limits = c(1820, 2020), expand = c(0, 0),
     breaks = seq(1800, 2050, 50), name = "Year") +
-  scale_y_continuous(
+  scale_y_continuous(  # y axis
     limits = c(0, 1750), expand = c(0, 0),
     breaks = seq(0, 2000, 500), name = "No. of specimens") +
   theme_rob()  # apply custom theme
@@ -62,8 +61,8 @@ symbols(
 
 # add points for all coordinates:
 points(
-  plot_coords,
-  pch = 21, col = "white", bg = "royalblue", cex = 1
+  plot_coords, pch = 21,
+  col = "white", bg = adjustcolor("royalblue", alpha = 0.8)
 )
 
 # ~ coordinates 'near to' Stanley:
@@ -85,8 +84,8 @@ symbols(
 
 # add points for all coordinates:
 points(
-  plot_coords,
-  pch = 21, col = "white", bg = "royalblue", cex = 1
+  plot_coords, pch = 21,
+  col = "white", bg = adjustcolor("royalblue", alpha = 0.8)
 )
 
 
@@ -118,6 +117,11 @@ plot(  # add simplified flk shapefile (polygons)
   lwd = 0.5, add = TRUE
 )
 
+points(  # add points for all coordinates
+  plot_coords, pch = 21,
+  col = "white", bg = adjustcolor("royalblue", alpha = 0.8)
+)
+
 
 # close .pdf plotting device:
 dev.off()
@@ -141,33 +145,35 @@ par(mar = mar_map)  # outer margins
 # create plots:
 for (i in all_taxa) {  # for each taxon,
   
-  # extract rasterised point coordinates for this taxon
-  # (NB -- **most recent** year group only):
+  # extract coordinates and rasters for this taxon:
+  # (NB -- **most recent** year group only)
+  taxon_coords <- taxa_coords[[i]][[year_grps[length(year_grps)]]]
   taxon_raster <- taxa_rasters[[i]][[year_grps[length(year_grps)]]]
   
-  # only if coordinates are not NULL 
-  if (!is.null(taxon_raster)) {
+  # only if coordinates/rasters are not NULL :
+  if (!is.null(taxon_coords)) {
     
-    # plot raster cell underlay (as polygons):
-    plot(
+    plot(  # plot raster cell underlay (as polygons)
       rasterToPolygons(flk_coast_raster),
       border = grey(0.75), lwd = 1
     )
     
-    # add simplified flk polygon shapefile:
-    plot(
+    plot(  # add simplified flk polygon shapefile
       shp_flk_simple, add = TRUE,
       lwd = 0.5
     )
     
-    # add taxon raster squares:
-    plot(
+    plot(  # add taxon raster squares
       rasterToPolygons(taxon_raster), add = TRUE,
       border = NA, col = adjustcolor("royalblue", alpha = 0.8)
     )
     
-    # add taxon name in top right corner:
-    legend(
+    points(  # add taxon coordinates points
+      taxon_coords, pch = 21,
+      col = "white", bg = adjustcolor("royalblue", alpha = 0.8)
+    )
+    
+    legend(  # add taxon name in top right corner
       "topright", legend = i, bty = "n", cex = 1
     )
     
