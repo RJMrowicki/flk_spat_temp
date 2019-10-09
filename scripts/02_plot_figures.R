@@ -208,14 +208,18 @@ pdf(
 # set plotting parameters:
 par(mar = mar_map)  # outer margins
 
+
+# i <- all_grps[2]  ### test
+
 # create plots:
 for (i in all_grps) {  # for each taxon group,
   
-  # extract raster for this group:
+  # extract coordinates/raster for this group:
   # (NB -- **most recent** year group only)
+  grp_coords <- grps_coords[[i]][[year_grps[length(year_grps)]]]
   grp_raster <- grps_rasters[[i]][[year_grps[length(year_grps)]]]
   
-  # only if raster is not NULL :
+  # only if coordinates/raster are not NULL :
   if (!is.null(grp_raster)) {
     
     # create vector of taxa within this group:
@@ -242,26 +246,44 @@ for (i in all_grps) {  # for each taxon group,
       border = NA, col = grey(0.5, alpha = 0.5)
     )
     
-    for (j in grp_taxa) {  # for each taxon,
-      
-      # extract taxon coordinates:
-      # (NB -- **most recent** year group only)
-      taxon_coords <- taxa_coords[[j]][[year_grps[length(year_grps)]]]
-      
-      # only if coordinates/rasters are not NULL :
-      if (!is.null(taxon_coords)) {
-        
-        points(  # add taxon coordinates points
-          taxon_coords,
-          pch = 21,
-          col = "white",
-          bg = pt_sty_taxa$col[pt_sty_taxa$taxon == j],
-          cex = 1.5
-        )
-        
-      }
-    }
+    # # ~ plot standard points (overlapping) for taxa:
+    # for (j in grp_taxa) {  # for each taxon,
+    # 
+    #   # extract taxon coordinates:
+    #   # (NB -- **most recent** year group only)
+    #   taxon_coords <- taxa_coords[[j]][[year_grps[length(year_grps)]]]
+    # 
+    #   # only if coordinates/rasters are not NULL :
+    #   if (!is.null(taxon_coords)) {
+    # 
+    #     points(  # add taxon coordinates points
+    #       taxon_coords,
+    #       pch = 21,
+    #       col = "white",
+    #       bg = pt_sty_taxa$col[pt_sty_taxa$taxon == j],
+    #       cex = 1.5
+    #     )
+    # 
+    #   }
+    # }
+
+    # ~ plot non-overlapping 'points' for group as a whole:
+    pt_radius <- 2000  # specify 'point' radius (in m)
+    # determine non-overlapping layout, based on 'point' radius:
+    lyt <- circleRepelLayout(
+      cbind(coordinates(grp_coords), pt_radius),
+      sizetype = "radius")$layout
     
+    # add taxa points as non-overlapping circles:
+    symbols(
+      lyt$x, lyt$y, lyt$radius, inches = FALSE, add = TRUE,
+      fg = "white",
+      # colour according to 
+      bg = pt_sty_taxa$col[match(
+        grp_coords$det_name, pt_sty_taxa$taxon
+      )]
+    )
+
     legend(  # add legend for taxon
       "bottomright", bty = "n", legend = pt_sty_taxa$taxon,
       pch = 21, col = "white", pt.bg = pt_sty_taxa$col

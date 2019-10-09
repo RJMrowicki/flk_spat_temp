@@ -398,13 +398,25 @@ for (i in all_grps) {  # for each taxon group,
   for (j in year_grps) {  # for each year group,
     # only if year group represented in group data:
     if (j %in% grp_dat$year_grp) {
-      grp_coords <- grp_dat %>%
+      
+      grp_coords_dat <- grp_dat %>%
         # filter group data for this year group:
         filter(year_grp == j) %>%
         # extract unique locations associated with specimens:
-        distinct_at(vars(lon, lat)) %>%  # (NB -- **x before y**)
-        # convert to SpatialPoints object (NB -- **WGS84 projection**):
-        SpatialPoints(CRS("+init=epsg:4326"))
+        # (NB -- **x before y**; keep all columns)
+        distinct_at(vars(lon, lat), .keep_all = TRUE) %>%
+        # select coordinates and name columns:
+        dplyr::select(lon, lat, det_name)
+      
+      # convert to SpatialPointsDataFrame object,
+      # including both coordinates and associated taxon names:
+      grp_coords <- SpatialPointsDataFrame(
+        coords = SpatialPoints(
+          dplyr::select(grp_coords_dat, lon, lat),
+          CRS("+init=epsg:4326")),  # (NB -- **WGS84 projection**)
+        data = dplyr::select(grp_coords_dat, det_name)
+      )
+      
       # assign to corresponding list item (NB -- **reproject**)
       grps_coords[[i]][[j]] <- spTransform(grp_coords, CRS(my_proj))
     }
