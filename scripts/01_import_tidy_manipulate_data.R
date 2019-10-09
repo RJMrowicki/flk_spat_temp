@@ -337,7 +337,7 @@ if ("flk_coast_raster" %in% list.files("./objects")) {
 
 # Species-based analysis ============================================
 
-# ~ Obtain coordinates for taxa and groups by year group ------------
+# ~ Obtain coordinates for taxa and taxon groups by year group ------
 
 # create empty list for storing site coordinates per taxon/year group:
 # ~ create blank list for storing data per year group:
@@ -376,6 +376,47 @@ for (i in all_taxa) {  # for each taxon,
 taxa_rasters <- taxa_coords %>%
   # rasterise point coordinates based on grid template
   # for each year group within each taxon:
+  map_depth(2, ~ if (!is.null(.)) {  # only if coordinates not NULL
+    rasterize(., grid_template, field = 1, crs = my_proj)
+  })
+
+
+
+
+# create empty list for storing site coordinates per taxon/year group:
+# ~ create list of year group lists with one entry per taxon:
+grps_coords <- rep(list(a), length(all_grps))
+names(grps_coords) <- all_grps  # name list entries according to taxa
+
+
+# i <- all_grps[1]  ### test
+# j <- year_grps[1]  ### test
+
+for (i in all_grps) {  # for each taxon group,
+  # subset specimen data for this group:
+  grp_dat <- dd_specimens %>% filter(det_grp == i)
+  for (j in year_grps) {  # for each year group,
+    # only if year group represented in group data:
+    if (j %in% grp_dat$year_grp) {
+      grp_coords <- grp_dat %>%
+        # filter group data for this year group:
+        filter(year_grp == j) %>%
+        # extract unique locations associated with specimens:
+        distinct_at(vars(lon, lat)) %>%  # (NB -- **x before y**)
+        # convert to SpatialPoints object (NB -- **WGS84 projection**):
+        SpatialPoints(CRS("+init=epsg:4326"))
+      # assign to corresponding list item (NB -- **reproject**)
+      grps_coords[[i]][[j]] <- spTransform(grp_coords, CRS(my_proj))
+    }
+  }
+}
+
+
+
+
+grps_rasters <- grps_coords %>%
+  # rasterise point coordinates based on grid template
+  # for each year group within each taxon group:
   map_depth(2, ~ if (!is.null(.)) {  # only if coordinates not NULL
     rasterize(., grid_template, field = 1, crs = my_proj)
   })

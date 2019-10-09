@@ -145,12 +145,12 @@ par(mar = mar_map)  # outer margins
 # create plots:
 for (i in all_taxa) {  # for each taxon,
   
-  # extract coordinates and rasters for this taxon:
+  # extract coordinates and raster for this taxon:
   # (NB -- **most recent** year group only)
   taxon_coords <- taxa_coords[[i]][[year_grps[length(year_grps)]]]
   taxon_raster <- taxa_rasters[[i]][[year_grps[length(year_grps)]]]
   
-  # only if coordinates/rasters are not NULL :
+  # only if coordinates/raster are not NULL :
   if (!is.null(taxon_coords)) {
     
     plot(  # plot raster cell underlay (as polygons)
@@ -211,54 +211,67 @@ par(mar = mar_map)  # outer margins
 # create plots:
 for (i in all_grps) {  # for each taxon group,
   
-  # create vector of taxa within that group:
-  grp_taxa <- all_grps_taxa[[i]]
+  # extract raster for this group:
+  # (NB -- **most recent** year group only)
+  grp_raster <- grps_rasters[[i]][[year_grps[length(year_grps)]]]
   
-  # create point style table for taxon lookup:
-  pt_sty_taxa <- tibble(
-    taxon = grp_taxa,
-    col = grps_taxa_colours(length(grp_taxa))
-  )
-
-  plot(  # plot raster cell underlay (as polygons)
-    rasterToPolygons(flk_coast_raster),
-    border = grey(0.75), lwd = 1
-  )
-  
-  plot(  # add simplified flk polygon shapefile
-    shp_flk_simple, add = TRUE,
-    lwd = 0.5
-  )
-  
-  for (j in grp_taxa) {  # for each taxon,
+  # only if raster is not NULL :
+  if (!is.null(grp_raster)) {
     
-    # extract taxon coordinates:
-    # (NB -- **most recent** year group only)
-    taxon_coords <- taxa_coords[[j]][[year_grps[length(year_grps)]]]
+    # create vector of taxa within this group:
+    grp_taxa <- all_grps_taxa[[i]]
     
-    # only if coordinates/rasters are not NULL :
-    if (!is.null(taxon_coords)) {
+    # create point style table for taxon lookup:
+    pt_sty_taxa <- tibble(
+      taxon = grp_taxa,
+      col = grps_taxa_colours(length(grp_taxa))
+    )
+    
+    plot(  # plot raster cell underlay (as polygons)
+      rasterToPolygons(flk_coast_raster),
+      border = grey(0.75), lwd = 1
+    )
+    
+    plot(  # add simplified flk polygon shapefile
+      shp_flk_simple, add = TRUE,
+      lwd = 0.5
+    )
+    
+    plot(  # add taxon group raster squares
+      rasterToPolygons(grp_raster), add = TRUE,
+      border = NA, col = grey(0.5, alpha = 0.5)
+    )
+    
+    for (j in grp_taxa) {  # for each taxon,
       
-      points(  # add taxon coordinates points
-        taxon_coords,
-        pch = 21,
-        col = "white",
-        bg = pt_sty_taxa$col[pt_sty_taxa$taxon == j],
-        cex = 1.5
-      )
+      # extract taxon coordinates:
+      # (NB -- **most recent** year group only)
+      taxon_coords <- taxa_coords[[j]][[year_grps[length(year_grps)]]]
       
+      # only if coordinates/rasters are not NULL :
+      if (!is.null(taxon_coords)) {
+        
+        points(  # add taxon coordinates points
+          taxon_coords,
+          pch = 21,
+          col = "white",
+          bg = pt_sty_taxa$col[pt_sty_taxa$taxon == j],
+          cex = 1.5
+        )
+        
+      }
     }
+    
+    legend(  # add legend for taxon
+      "bottomright", bty = "n", legend = pt_sty_taxa$taxon,
+      pch = 21, col = "white", pt.bg = pt_sty_taxa$col
+    )
+    
+    legend(  # add taxon group name in top right corner
+      "topright", legend = i, bty = "n", cex = 1
+    )
+    
   }
-  
-  legend(  # add legend for taxon
-    "bottomright", bty = "n", legend = pt_sty_taxa$taxon,
-    pch = 21, col = "white", pt.bg = pt_sty_taxa$col
-  )
-  
-  legend(  # add taxon group name in top right corner
-    "topright", legend = i, bty = "n", cex = 1
-  )
-  
 }
 
 
