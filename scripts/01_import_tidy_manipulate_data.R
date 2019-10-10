@@ -233,7 +233,7 @@ use_taxa <- c(
   "Myriotrichia clavaeformis", "Tinocladia falklandica",
   "Durvillaea antarctica", "Turbinaria sp. indet.",
   "Macrocystis pyrifera", "Carpomitra costata"
-)
+) %>% sort  # sort alphabetically
 # use_taxa %in% all_taxa  ### check taxa names are valid
 
 use_grps <- c(  # (NB -- in **'taxonomic' order**)

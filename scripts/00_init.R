@@ -29,12 +29,13 @@ library(lubridate)  # ymd_hms(), year(), etc.
 
 library(alphahull)  # ashape(), areahull()
 library(igraph)  # graph.edgelist()
-library(packcircles)  # circleRepelLayout()
 library(raster)  # raster(), plot.raster()
 library(rgdal)  # readOGS(), spTransform()
 library(rmapshaper)  # ms_simplify()
 library(SDraw)  # voronoi.polygons()
 library(spatial.tools)  # modify_raster_margins()
+
+library(knitr)  # kable()
 
 
 
