@@ -147,8 +147,8 @@ for (i in use_taxa) {  # for each taxon,
   
   # extract coordinates and raster for this taxon:
   # (NB -- **most recent** year group only)
-  taxon_coords <- taxa_coords[[i]][[year_grps[length(year_grps)]]]
-  taxon_raster <- taxa_rasters[[i]][[year_grps[length(year_grps)]]]
+  taxon_coords <- taxa_coords[[i]][[last(year_grps)]]
+  taxon_raster <- taxa_rasters[[i]][[last(year_grps)]]
   
   # only if coordinates/raster are not NULL :
   if (!is.null(taxon_coords)) {
@@ -216,8 +216,8 @@ for (i in all_grps) {  # for each taxon group,
   
   # extract coordinates/raster for this group:
   # (NB -- **most recent** year group only)
-  grp_coords <- grps_coords[[i]][[year_grps[length(year_grps)]]]
-  grp_raster <- grps_rasters[[i]][[year_grps[length(year_grps)]]]
+  grp_coords <- grps_coords[[i]][[last(year_grps)]]
+  grp_raster <- grps_rasters[[i]][[last(year_grps)]]
   
   # only if coordinates/raster are not NULL :
   if (!is.null(grp_raster)) {
@@ -256,7 +256,7 @@ for (i in all_grps) {  # for each taxon group,
     # 
     #   # extract taxon coordinates:
     #   # (NB -- **most recent** year group only)
-    #   taxon_coords <- taxa_coords[[j]][[year_grps[length(year_grps)]]]
+    #   taxon_coords <- taxa_coords[[j]][[last(year_grps)]]
     # 
     #   # only if coordinates/rasters are not NULL :
     #   if (!is.null(taxon_coords)) {

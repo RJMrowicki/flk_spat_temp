@@ -97,14 +97,14 @@ site_rich <- dd_specimens %>%
 # # specify richness range:
 # rich_range <- site_rich %>%
 #   # (NB -- **most recent** year group only)
-#   dplyr::select(year_grps[length(year_grps)]) %>% range(na.rm = TRUE)
+#   dplyr::select(last(year_grps)) %>% range(na.rm = TRUE)
 # # determine richness group breaks manually:
 # rich_breaks <- c(rich_range[1], seq(15, 70, 15), rich_range[2])
 
 # determine richness group breaks based on quartiles:
 rich_breaks <- site_rich %>%
   # (NB -- **most recent** year group only)
-  dplyr::select(year_grps[length(year_grps)]) %>%
+  dplyr::select(last(year_grps)) %>%
   # calculate quartiles (NB -- Type 3 rounds to nearest sample value)
   as_vector %>% quantile(na.rm = TRUE, type = 3)
 

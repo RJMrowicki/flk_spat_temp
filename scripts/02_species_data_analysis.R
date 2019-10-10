@@ -120,8 +120,8 @@ taxa_eoo <- taxa_coords %>%
       ashp <- ashape(coordinates(.), alpha = 3 * (extent(.)[2] - extent(.)[1]))
       # convert to polygon and calculate area:
       area(ashape_poly(ashp, my_proj)) / 10^6
-    }
-  })
+    } else { NA }
+  } else { NA })  # else replace NULL with NA
 
 
 
@@ -132,7 +132,7 @@ taxa_aoo_raw <- taxa_rasters %>%
   map_depth(2, ~ if (!is.null(.)) {  # only if coordinates not NULL
     # no. of occupied cells * cell area (in km):
     cellStats(., sum) * prod(res(.)/10^3)
-  })
+  } else { NA })  # else replace NULL with NA
 
 
 
@@ -182,7 +182,7 @@ taxa_aoo <- taxa_coords %>%
     )
     
     return(pred_aoo)  # output predicted area of occupancy
-  })
+  } else { NA })  # else replace NULL with NA
 
 
 
@@ -224,3 +224,29 @@ taxa_st <- map(all_taxa, function (x) {  # for each taxon,
     # add column and row sums as new row and column, respectively:
     rbind(TOTAL = colSums(.)) %>% cbind(TOTAL = rowSums(.))
 }) %>% set_names(all_taxa)  # name list elements
+
+
+
+
+# ~ Summarise EOO, AOO and no. of locations -------------------------
+
+# create summary table of EOO, AOO and no. of locations for taxa:
+# (NB -- **selected taxa** and **most recent year group** only)
+taxa_eoo_aoo_locs <- tibble(
+  taxon = use_taxa,  # selected taxa names
+  eoo_km2 = map_dbl(  # result as numerical vector
+    taxa_eoo[use_taxa],  # selected taxa only
+    # extract value for the most recent year group:
+    function (x) { x[[last(year_grps)]] }),
+  aoo_km2 = map_dbl(
+    taxa_aoo[use_taxa],
+    function (x) { x[[last(year_grps)]] }),
+  n_locs = map_dbl(
+    taxa_st[use_taxa], function (x) {
+      # calculate no. of locations via `sum(x != 0)`:
+      sum(x[loc_grps, last(year_grps)] != 0)
+    })
+)
+
+# output to .csv file:
+write_csv(taxa_eoo_aoo_locs, "./out/taxa_eoo_aoo_locs.csv")
