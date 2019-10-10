@@ -143,7 +143,7 @@ pdf(
 par(mar = mar_map)  # outer margins
 
 # create plots:
-for (i in all_taxa) {  # for each taxon,
+for (i in use_taxa) {  # for each taxon,
   
   # extract coordinates and raster for this taxon:
   # (NB -- **most recent** year group only)
@@ -283,7 +283,7 @@ for (i in all_grps) {  # for each taxon group,
     symbols(
       lyt$x, lyt$y, lyt$radius, inches = FALSE, add = TRUE,
       fg = "white",
-      # colour according to 
+      # colour according to taxon:
       bg = pt_sty_taxa$col[match(
         grp_coords$det_name, pt_sty_taxa$taxon
       )]
@@ -344,8 +344,15 @@ plot(  # plot simplified flk shapefile (polygons)
 # specify year group to plot:
 plot_year_grp <- year_grps[length(year_grps)]
 
+pt_radius <- 1500  # specify 'point' radius (in m)
+# determine non-overlapping layout, based on 'point' radius:
+lyt <- circleRepelLayout(
+  cbind(coordinates(plot_coords_rich), pt_radius),
+  sizetype = "radius")$layout
+
 points(  # add points
-  plot_coords_rich,
+  # plot_coords_rich,  # standard points (overlapping)
+  lyt$x, lyt$y,  # non-overlapping points
   # symbol and colour according to richness group:
   pch = pt_sty_rich$pch[
     match(

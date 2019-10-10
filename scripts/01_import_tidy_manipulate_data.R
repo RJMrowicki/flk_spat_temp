@@ -187,15 +187,56 @@ all_grps_taxa <- map(all_grps, function (x) {  # for each taxon group,
   dd_specimens %>%
     # subset specimen data for that taxon group:
     filter(det_grp == x) %>%
-    # extract unique taxon names:
-    distinct(det_name) %>%
-    # drop NAs, sort alphabetically, convert to vector:
-    drop_na %>% arrange(det_name) %>% pull
+    # select taxa and convert to vector:
+    dplyr::select(det_name) %>% pull %>%
+    # convert to factor and relevel to place "sp. " at the end:
+    fct_relevel(
+      grep("sp. ", levels(factor(.)), value = TRUE),
+      after = Inf  # move to end
+    ) %>% levels
 }) %>% set_names(all_grps)  # name list elements
 
 
-# specify taxon groups to use in subsequent analyses:
-use_grps <- c(  # (NB -- in 'taxonomic' order)
+# specify taxa and taxon groups to use in subsequent analyses:
+use_taxa <- c(
+  # include all names with "sp. X" (e.g. "sp. 1", "sp. FIH"),
+  # i.e. species determined via analysis of molecular data:
+  grep("sp. [0-9|A-Z]", all_taxa, value = TRUE),
+  grep("cf. ", all_taxa, value = TRUE),
+  # Chlorophyta:
+  "Bryopsis rosea", "Codium fragile",
+  "Spongomorpha aeruginosa", "Ulva australis",
+  "Ulva compressa", "Ulva intestinalis",
+  "Ulva lactuca",
+  # Rhodophyta:
+  "Corallina chamberlaineae", "Amphiroa sp. indet.",
+  "Hildenbrandia lecannelieri", "Camontagnea oxyclada",
+  "Delisea pulchra", "Ptilonia magellanica",
+  "Falklandiella harveyi",
+  grep("Schizoseris", all_taxa, value = TRUE),
+  "Hymenena falklandica", "Hymenena laciniata",
+  "Cladodonta lyallii", "Phycodrys quercifolia",
+  "Paraglossum epiglossum", "Polysiphonia paniculata",
+  "Polysiphonia stricta", "Melanothamnus harveyi",
+  "Streblocladia camptoclada", "Griffithsia antarctica",
+  "Acanthococcus antarcticus", "Cystoclonium obtusangulum",
+  "Mazzaella laminarioides", "Trematocarpus antarcticus",
+  "Hymenocladia divaricata", "Semnocarpa corynephora",
+  # Ochrophyta:
+  "Lithoderma antarcticum", "Syringoderma australe",
+  grep("Desmarestia [^'sp. ']", all_taxa, value = TRUE),
+  "Geminocarpus geminatus", "Pylaiella littoralis",
+  "Caepidium antarcticum", "Chordariopsis capensis",
+  "Utriculidium durvelli", "Actinema subtilissimum",
+  grep("Chordaria", all_taxa, value = TRUE),
+  "Cladothele decaisnei", "Corycus lanceolatus",
+  "Myriotrichia clavaeformis", "Tinocladia falklandica",
+  "Durvillaea antarctica", "Turbinaria sp. indet.",
+  "Macrocystis pyrifera", "Carpomitra costata"
+)
+# use_taxa %in% all_taxa  ### check taxa names are valid
+
+use_grps <- c(  # (NB -- in **'taxonomic' order**)
   # Chlorophyta:
   "Prasiola",
   # Rhodophyta:
@@ -207,7 +248,6 @@ use_grps <- c(  # (NB -- in 'taxonomic' order)
   "Dictyosiphon", "Punctaria", "Colpomenia", "Petalonia",
   "Scytosiphon", "Lessonia", "Splachnidiaceae"
 )
-
 # use_grps %in% all_grps  ### check group names are valid
 
 
