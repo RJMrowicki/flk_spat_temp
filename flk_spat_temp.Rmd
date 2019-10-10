@@ -14,7 +14,7 @@ source('./scripts/00_init.R')  # run initialisation script
 
 ```{r source_scripts, include = FALSE}
 # run data scripts:
-source('./scripts/01_import_tidy_manipulate_data.R')
+source('./scripts/01_¶import_tidy_manipulate_data.R')
 source('./scripts/02_plot_figures.R')
 ```
 
@@ -54,7 +54,7 @@ The number of specimen records (whereby each 'record' corresponded to a collecti
 
 ### Site-level assessment
 
-Contemporary records from the DPLUS068 'Falklands marine forests' project (2018--19) were used for site-level assessments.
+Contemporary records from the DPLUS068 'Falklands marine forests' project (2018--19) were used for site-level assessments. Only sites for which survey duration exceeded 30 minutes were included.
 
 
 ## Figures

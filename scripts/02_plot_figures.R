@@ -337,12 +337,14 @@ pdf(
 # set plotting parameters:
 par(mar = mar_map)  # outer margins
 
+
+
 plot(  # plot simplified flk shapefile (polygons)
   shp_flk_simple, lwd = 0.5
 )
 
-# specify year group to plot:
-plot_year_grp <- year_grps[length(year_grps)]
+# specify richness variable (/year group) to plot:
+plot_var <- "rich"
 
 pt_radius <- 1500  # specify 'point' radius (in m)
 # determine non-overlapping layout, based on 'point' radius:
@@ -357,12 +359,12 @@ points(  # add points
   pch = pt_sty_rich$pch[
     match(
       # (NB -- convert tibble column to vector):
-      pull(site_rich_grps[, plot_year_grp]),
+      pull(DPLUS068_site_rich_grps[, plot_var]),
       pt_sty_rich$rich_grp
     )],
   col = pt_sty_rich$col[
     match(
-      pull(site_rich_grps[, plot_year_grp]),
+      pull(DPLUS068_site_rich_grps[, plot_var]),
       pt_sty_rich$rich_grp
     )],
   cex = 1.5

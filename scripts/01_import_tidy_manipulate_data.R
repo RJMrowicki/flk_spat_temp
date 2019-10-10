@@ -11,7 +11,9 @@ dd_sites <- dd_sites %>%
   mutate(
     time_start = ymd_hms(paste(date, time_start)),
     time_end = ymd_hms(paste(date, time_end))
-  )
+  ) %>%
+  # calculate survey duration in minutes:
+  mutate(dur_min = time_end - time_start)
 
 
 
@@ -117,9 +119,10 @@ use_dd_specimens_DPLUS068 <- dd_specimens_DPLUS068 %>%
   # exclude drift specimens:
   filter(is.na(drift)) %>%
   # extract columns for group, name, year, collector,
-  # location group, coordinates and extent:
+  # location group, site code, coordinates and extent:
   dplyr::select(
-    det_grp, det_name, year, coll, loc_grp, lat, lon, extent
+    det_grp, det_name, year, coll,
+    site_code, loc_grp, lat, lon, extent
   )
 
 
@@ -167,7 +170,22 @@ dd_specimens <- dd_specimens %>%
 
 # extract unique sites:
 sites <- dd_specimens %>%
-  distinct(site) %>% arrange(site) %>% pull
+  # drop NAs, arrange alphabetically, convert to vector:
+  distinct(site) %>% drop_na %>% arrange(site) %>% pull
+
+# extract unique DPLUS068 site codes:
+site_codes <- dd_specimens %>%
+  # drop NAs, arrange alphabetically, convert to vector:
+  distinct(site_code) %>% drop_na %>% arrange(site_code) %>% pull
+
+# specify site codes to use in site-based analyses:
+use_site_codes <- dd_sites %>%
+  # subset DPLUS068 sites with **survey duration >= 30 min**:
+  filter(dur_min >= 30) %>%
+  # drop NAs, sort alphabetically, convert to vector:
+  distinct(site_code) %>% drop_na %>% arrange(site_code) %>% pull %>%
+  # return only values that are found in 'site_codes':
+  intersect(site_codes)
 
 
 
@@ -197,7 +215,7 @@ all_grps_taxa <- map(all_grps, function (x) {  # for each taxon group,
 }) %>% set_names(all_grps)  # name list elements
 
 
-# specify taxa and taxon groups to use in subsequent analyses:
+# specify taxa and taxon groups to use in species-based analyses:
 use_taxa <- c(
   # include all names with "sp. X" (e.g. "sp. 1", "sp. FIH"),
   # i.e. species determined via analysis of molecular data:
@@ -235,6 +253,7 @@ use_taxa <- c(
   "Macrocystis pyrifera", "Carpomitra costata"
 ) %>% sort  # sort alphabetically
 # use_taxa %in% all_taxa  ### check taxa names are valid
+
 
 use_grps <- c(  # (NB -- in **'taxonomic' order**)
   # Chlorophyta:
@@ -604,7 +623,9 @@ taxa_st <- map(all_taxa, function (x) {  # for each taxon,
 
 # Site-based analysis ===============================================
 
-# ~ Obtain taxa list per site by year group -------------------------
+# ~ Obtain taxa list per site by year -------------------------------
+
+# ~~ All sites, by year group:
 
 # create empty list for storing taxa per site/year group:
 # ~ create blank list for storing data per year group:
@@ -619,8 +640,9 @@ names(site_taxa) <- sites  # name list entries according to sites
 # j <- year_grps[5]  ### test
 
 for (i in sites) {  # for each site,
-  # subset specimen data for this site:
-  site_dat <- dd_specimens %>% filter(site == i)
+  site_dat <- dd_specimens %>%
+    # subset specimen data for this site:
+    filter(site == i)
   for (j in year_grps) {  # for each year group,
     # only if year group represented in site data:
     if (j %in% site_dat$year_grp) {
@@ -628,8 +650,9 @@ for (i in sites) {  # for each site,
       site_taxa[[i]][[j]] <- site_dat %>%
         # filter site data for this year group:
         filter(year_grp == j) %>%
-        # extract unique taxa associated with specimens:
-        distinct(det_name) %>% pull  # convert to vector
+        # extract unique taxa associated with specimens,
+        # sort alphabetically and convert to vector:
+        distinct(det_name) %>% arrange(det_name) %>% pull
     }
   }
 }
@@ -637,7 +660,24 @@ for (i in sites) {  # for each site,
 
 
 
-# ~ Summarise no. of taxa per site by year group --------------------
+# ~~ DPLUS068 sites only:
+
+DPLUS068_site_taxa <- map(site_codes, function (x) {
+  # for each DPLUS068 site,
+  dd_specimens %>%
+    # subset specimens data for that site:
+    filter(site_code == x) %>%
+    # extract unique taxa associated with specimens,
+    # sort alphabetically and convert to vector:
+    distinct(det_name) %>% arrange(det_name) %>% pull
+}) %>% set_names(site_codes)
+
+
+
+
+# ~ Summarise no. of taxa per site by year --------------------------
+
+# ~~ All sites, by year group:
 
 # site_rich <- site_taxa %>%
 #   # calculate richness (total no. of taxa),
@@ -685,8 +725,8 @@ site_rich <- dd_specimens %>%
 rich_breaks <- site_rich %>%
   # (NB -- **most recent** year group only)
   dplyr::select(year_grps[length(year_grps)]) %>%
+  # calculate quartiles (NB -- Type 3 rounds to nearest sample value)
   as_vector %>% quantile(na.rm = TRUE, type = 3)
-  # (NB -- use Type 3 to round to nearest sample value)
 
 
 # create new table for 'richness group' instead of 'richness':
@@ -697,15 +737,70 @@ site_rich_grps <- site_rich %>%
   )
 
 
+
+
+# ~~ DPLUS068 sites only:
+
+# DPLUS068_site_rich <- DPLUS068_site_taxa %>%
+#   # calculate richness (total no. of taxa) for each DPLUS068 site:
+#   map(~ if (!is.null(.)) { length(.) })
+
+
+DPLUS068_site_rich <- dd_specimens %>%
+  # subset DPLUS068 sites (NB -- selected sites only):
+  filter(site_code %in% use_site_codes) %>%
+  # convert site code from character to factor:
+  mutate(site_code = factor(site_code)) %>%
+  # extract unique combinations of name and site code:
+  distinct_at(vars(det_name, site_code), .keep_all = TRUE) %>%
+  # group by site code (NB -- keep factor levels):
+  group_by(site_code, .drop = FALSE) %>%
+  # calculate number of rows per group:
+  summarise(rich = n()) %>%
+  # replace 0 with NA:
+  mutate(rich = na_if(rich, 0)) %>%
+  # ungroup and convert site code from factor to character:
+  ungroup %>% mutate(site_code = as.character(site_code)) %>%
+  # add columns from original data frame:
+  left_join(
+    # (NB -- must remove duplicate site code rows first)
+    distinct_at(dd_specimens, vars(site_code), .keep_all = TRUE),
+    by = "site_code") %>%
+  # select coordinates, location, site code and richness columns:
+  dplyr::select(lon, lat, loc_grp, site_code, rich)
+
+
+
+
+# determine richness group breaks based on quartiles:
+DPLUS068_rich_breaks <- DPLUS068_site_rich %>%
+  # select richness column:
+  dplyr::select(rich) %>%
+  # calculate quartiles (NB -- Type 3 rounds to nearest sample value)
+  as_vector %>% quantile(na.rm = TRUE, type = 3)
+
+
+# create new table for 'richness group' instead of 'richness':
+DPLUS068_site_rich_grps <- DPLUS068_site_rich %>%
+  mutate(rich = cut(
+    rich, DPLUS068_rich_breaks, include.lowest = TRUE, na.rm = TRUE
+  ))
+
+
+
+
+# # extract richness group levels:
+# rich_grps <- site_rich_grps %>%
+#   dplyr::select(year_grps) %>% combine %>% levels
+
 # extract richness group levels:
-rich_grps <- site_rich_grps %>%
-  dplyr::select(year_grps) %>% combine %>% levels
+rich_grps <- levels(DPLUS068_site_rich_grps$rich)
 
 
 
 
-# convert coordinats to spatial points for plotting:
-plot_coords_rich <- site_rich %>%
+# convert coordinates to spatial points for plotting:
+plot_coords_rich <- DPLUS068_site_rich %>%
   # select coordinates columns only:
   dplyr::select(lon, lat) %>%
   # reproject to current projection:
