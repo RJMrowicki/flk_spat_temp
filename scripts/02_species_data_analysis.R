@@ -228,6 +228,22 @@ taxa_st <- map(all_taxa, function (x) {  # for each taxon,
 
 
 
+# output to Excel workbook using 'openxlsx' package:
+taxa_st_wb <- createWorkbook()  # create new 'workbook' object
+# for each taxon, add named 'worksheet' and write data:
+map2(taxa_st[use_taxa], use_taxa, function (.x, .y) {
+  # (NB -- replace "/" to avoid Excel errors)
+  use_y <- str_replace(.y, "/", ".")
+  addWorksheet(taxa_st_wb, use_y)
+  writeData(taxa_st_wb, use_y, .x, rowNames = TRUE)
+})
+
+# output to .xlsx file:
+saveWorkbook(taxa_st_wb, "./out/taxa_st.xlsx", overwrite = TRUE)
+
+
+
+
 # ~ Summarise EOO, AOO and no. of locations -------------------------
 
 # create summary table of EOO, AOO and no. of locations for taxa:
