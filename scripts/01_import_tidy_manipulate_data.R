@@ -216,58 +216,112 @@ all_grps_taxa <- map(all_grps, function (x) {  # for each taxon group,
 
 
 # specify taxa and taxon groups to use in species-based analyses:
-use_taxa <- c(
-  # include all names with "sp. X" (e.g. "sp. 1", "sp. FIH"),
-  # i.e. species determined via analysis of molecular data:
-  grep("sp. [0-9|A-Z]", all_taxa, value = TRUE),
-  grep("cf. ", all_taxa, value = TRUE),
-  # Chlorophyta:
-  "Bryopsis rosea", "Codium fragile",
-  "Spongomorpha aeruginosa", "Ulva australis",
-  "Ulva compressa", "Ulva intestinalis",
-  "Ulva lactuca",
-  # Rhodophyta:
-  "Corallina chamberlaineae", "Amphiroa sp. indet.",
-  "Hildenbrandia lecannelieri", "Camontagnea oxyclada",
-  "Delisea pulchra", "Ptilonia magellanica",
+use_taxa <- c(  # (NB -- in **'taxonomic' order**)
+  # ~ Chlorophyta:
+  "Bryopsis rosea",
+  "Codium fragile",
+  "Codium subantarcticum",  # ?
+  "Codium sp. 1",
+  "Spongomorpha aeruginosa",
+  "Ulva cf. stenophylla",
+  "Ulvaria sp. 1",
+  # ~ Rhodophyta:
+  "Corallinales sp. 1",
+  "Corallinales sp. 3",
+  "Corallina cf. caespitosa",
+  "Corallina chamberlaineae",
+  "Amphiroa sp. indet.",
+  "Hapalidiales sp. 3",
+  "Hildenbrandia lecannelieri",
+  "Camontagnea oxyclada",
+  "Delisea pulchra",
+  "Ptilonia magellanica",
   "Falklandiella harveyi",
-  grep("Schizoseris", all_taxa, value = TRUE),
-  "Hymenena falklandica", "Hymenena laciniata",
-  "Cladodonta lyallii", "Phycodrys quercifolia",
-  "Paraglossum epiglossum", "Polysiphonia paniculata",
-  "Polysiphonia stricta", "Melanothamnus harveyi",
-  "Streblocladia camptoclada", "Griffithsia antarctica",
-  "Acanthococcus antarcticus", "Cystoclonium obtusangulum",
-  "Mazzaella laminarioides", "Trematocarpus antarcticus",
-  "Hymenocladia divaricata", "Semnocarpa corynephora",
-  # Ochrophyta:
-  "Lithoderma antarcticum", "Syringoderma australe",
-  grep("Desmarestia [^'sp. ']", all_taxa, value = TRUE),
-  "Geminocarpus geminatus", "Pylaiella littoralis",
-  "Caepidium antarcticum", "Chordariopsis capensis",
-  "Utriculidium durvelli", "Actinema subtilissimum",
-  grep("Chordaria", all_taxa, value = TRUE),
-  "Cladothele decaisnei", "Corycus lanceolatus",
-  "Myriotrichia clavaeformis", "Tinocladia falklandica",
-  "Durvillaea antarctica", "Turbinaria sp. indet.",
-  "Macrocystis pyrifera", "Carpomitra costata"
+  "Cladodonta lyallii",
+  "Picconiella pectinata",
+  "Griffithsia antarctica",
+  "Plumariopsis eatonii",
+  "Medeiothamnion flaccidum",
+  "Pterocladia lucida",
+  "Acanthococcus antarcticus",
+  "Cystoclonium obtusangulum",
+  "Iridaea cf. cordata",
+  "Mazzaella laminarioides",
+  "Ahnfeltiopsis sp. 1",
+  "Gymnogongrus sp. 1",
+  "Halymeniales sp. 1",
+  "Trematocarpus antarcticus",
+  "Hymenocladia divaricata",
+  "Semnocarpa corynephora",
+  # ~ Ochrophyta
+  "Lithoderma antarcticum",
+  "Syringoderma australe",
+  "Desmarestia chordalis",
+  "Desmarestia confervoides",
+  "Desmarestia distans",
+  "Desmarestia ligulata",
+  "Desmarestia muelleri",
+  "Desmarestia willii",
+  "Desmarestia viridis",
+  "Geminocarpus geminatus",
+  "Pylaiella littoralis",
+  "Caepidium antarcticum",
+  "Chordariopsis capensis",
+  "Utriculidium durvelli",
+  "Cladothele decaisnei",
+  "Corycus lanceolatus",
+  "Leathesia marina",
+  "Myriotrichia clavaeformis",
+  "Tinocladia falklandica",
+  "Durvillaea antarctica",
+  "Turbinaria sp. indet.",
+  "Macrocystis pyrifera",
+  "Carpomitra costata"
 ) %>% sort  # sort alphabetically
 # use_taxa %in% all_taxa  ### check taxa names are valid
 
 
 use_grps <- c(  # (NB -- in **'taxonomic' order**)
-  # Chlorophyta:
+  # ~ Chlorophyta:
   "Prasiola",
-  # Rhodophyta:
-  "Ahnfeltia", "Ballia", "Nothogenia", "Heterosiphonia",
-  "Bostrychia", "Catenella", "Callophyllis", "Plocamium",
+  "Acrosiphonia",
+  # ~ Rhodophyta:
+  "Ahnfeltia",
+  "Ballia",
+  "Nothogenia",
+  "Heterosiphonia",
+  "Bostrychia",
+  "Catenella",
+  "Callophyllis",
+  "Plocamium",
   "Rhodymeniophycidae",
-  # Ochrophyta:
-  "Dictyotaceae", "Cladostephus", "Halopteris", "Adenocystis",
-  "Dictyosiphon", "Punctaria", "Colpomenia", "Petalonia",
-  "Scytosiphon", "Lessonia", "Splachnidiaceae"
-)
+  # ~ Ochrophyta:
+  "Dictyotaceae",
+  "Cladostephus",
+  "Halopteris",
+  "Adenocystis",
+  "Chordariaceae",
+  "Dictyosiphon",
+  "Punctaria",
+  "Colpomenia",
+  "Petalonia",
+  "Scytosiphon",
+  "Lessonia",
+  "Splachnidiaceae"
+) %>% sort  # sort alphabetically
 # use_grps %in% all_grps  ### check group names are valid
+
+
+# # NB -- component taxa in 'use_grps' should not be in 'use_taxa':
+# use_taxa %in% unlist(all_grps_taxa[use_grps], use.names = FALSE)
+
+
+# specify taxa determined during DPLUS068 project only:
+DPLUS068_taxa <- use_dd_specimens_DPLUS068 %>%
+  # extract distinct taxa and remove those containing "sp. indet.":
+  distinct(det_name) %>% filter(!grepl(" sp. indet.", det_name)) %>%
+  # drop NAs, sort alphabetically, convert to vector:
+  drop_na %>% arrange(det_name) %>% pull
 
 
 

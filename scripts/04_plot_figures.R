@@ -143,7 +143,7 @@ pdf(
 par(mar = mar_map)  # outer margins
 
 # create plots:
-for (i in use_taxa) {  # for each taxon,
+for (i in use_taxa) {  # for each selected taxon,
   
   # extract coordinates and raster for this taxon:
   # (NB -- **most recent** year group only)
@@ -212,7 +212,7 @@ par(mar = mar_map)  # outer margins
 # i <- all_grps[2]  ### test
 
 # create plots:
-for (i in all_grps) {  # for each taxon group,
+for (i in use_grps) {  # for each selected taxon group,
   
   # extract coordinates/raster for this group:
   # (NB -- **most recent** year group only)
