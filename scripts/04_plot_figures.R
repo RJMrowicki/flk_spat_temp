@@ -346,7 +346,7 @@ plot(  # plot simplified flk shapefile (polygons)
 # specify richness variable (/year group) to plot:
 plot_var <- "rich"
 
-pt_radius <- 1500  # specify 'point' radius (in m)
+pt_radius <- 1750  # specify 'point' radius (in m)
 # determine non-overlapping layout, based on 'point' radius:
 lyt <- circleRepelLayout(
   cbind(coordinates(plot_coords_rich), pt_radius),
@@ -371,7 +371,7 @@ points(  # add points
 )
 
 legend(  # add legend for richness group
-  "topright", bty = "n", title = "Richness",
+  "bottomright", bty = "n", title = "Richness",
   legend = pt_sty_rich$rich_grp,
   pch = pt_sty_rich$pch,
   col = pt_sty_rich$col

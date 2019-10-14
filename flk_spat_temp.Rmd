@@ -1,7 +1,7 @@
 ---
 title: "Seaweeds through space and time: building tools for managing the Falkland Islands' unique coastal biodiversity"
 author: "Rob Mrowicki"
-date: "`r format(Sys.time(), "%d %B %Y")`"
+date: "`r format(Sys.time(), '%d %B %Y')`"
 output:
   pdf_document:
     fig_caption: yes
