@@ -38,7 +38,7 @@ Records for specimens collected as 'drift' (i.e. unattached to substratum) were 
 
 A total of `r length(use_taxa)` individual taxa were selected for species-level assessment. Additionally, `r length(use_grps)` taxonomic groups for which there was some uncertainty over the identities of component taxa were selected for distribution mapping.
 
-```{r grps_taxa_tables, include = FALSE}
+```{r grps_taxa_tables, echo = FALSE}
 # individual taxa selected for species-level assessment:
 kable(use_taxa, col.names = "Species")
 # selected taxon groups and their respective taxa:
