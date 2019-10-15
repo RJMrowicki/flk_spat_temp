@@ -8,15 +8,15 @@ mar_map <- c(0, 0, 0, 0)  # specify map margins
 
 # Summary histogram =================================================
 
-# open .pdf plotting device:
-pdf(
-  "./figures/histogram.pdf",
-  width = 10/2.54, height = 7.5/2.54
-)
+# # open .pdf plotting device:
+# pdf(
+#   "./figures/histogram.pdf",
+#   width = 10/2.54, height = 7.5/2.54
+# )
 
 
 # plot histogram of no. of specimens vs. year:
-ggplot(dd_specimens, aes(x = year)) +
+hist_specimens <- ggplot(dd_specimens, aes(x = year)) +
   geom_histogram(binwidth = 10, boundary = 0) +
   scale_x_continuous(  # x axis
     limits = c(1820, 2020), expand = c(0, 0),
@@ -27,8 +27,15 @@ ggplot(dd_specimens, aes(x = year)) +
   theme_rob()  # apply custom theme
 
 
-# close .pdf plotting device
-dev.off()
+# output to .pdf:
+ggsave(
+  "./figures/histogram.pdf", hist_specimens,
+   width = 10, height = 7.5, units = "cm"
+)
+
+
+# # close .pdf plotting device
+# dev.off()
 
 
 

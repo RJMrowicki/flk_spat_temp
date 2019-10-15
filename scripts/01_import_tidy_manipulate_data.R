@@ -39,7 +39,8 @@ dd_specimens_Mystikou <- read_csv(
 )
 
 dd_specimens_Mystikou <- dd_specimens_Mystikou %>%
-  # exclude rows identified in original datasheet:
+  # exclude rows identified in original datasheet
+  # (i.e. records for specimens that are not in NHM):
   filter(is.na(excl))
 
 
@@ -75,17 +76,17 @@ use_dd_specimens_herb <- dd_specimens_herb %>%
       list(fromY_new, toY_new),  # list of vectors to pass to function
       ~ year(mean(c(...), na.rm = TRUE))  # c(...) converts elements into vector
     )) %>%
-  # rename collector, coordinates and extent columns:
+  # rename collector, locality, coordinates and extent columns:
   rename(
-    coll = collector_new,
+    coll = collector_new, loc = loc_new,
     lat = decLat_new, lon = decLon_new, extent = extent_m
   ) %>%
   # exclude any rows with NA in either year or coordinate columns:
   filter_at(vars(year, lat, lon), all_vars(!is.na(.))) %>%
   # extract columns for group, name, year, collector,
-  # location group, coordinates and extent:
+  # locality, location group, coordinates and extent:
   dplyr::select(
-    det_grp, det_name, year, coll, loc_grp, lat, lon, extent
+    det_grp, det_name, year, coll, loc, loc_grp, lat, lon, extent
   )
 
 
@@ -93,16 +94,16 @@ use_dd_specimens_herb <- dd_specimens_herb %>%
 use_dd_specimens_Mystikou <- dd_specimens_Mystikou %>%
   # create new column for year:
   mutate(year = year(date)) %>%
-  # rename group, name and  coordinates columns:
+  # rename group, name, locality and coordinates columns:
   rename(
     det_grp = GROUP, det_name = NAME_new,
-    lat = decLat_gps, lon = decLon_gps) %>%
+    loc = loc_new, lat = decLat_gps, lon = decLon_gps) %>%
   # create column for extent (30 m for GPS coordinates):
   mutate(extent = 30) %>%
   # extract columns for group, name, year, collector,
   # location group, coordinates and extent:
   dplyr::select(
-    det_grp, det_name, year, coll, loc_grp, lat, lon, extent
+    det_grp, det_name, year, coll, loc, loc_grp, lat, lon, extent
   )
 
 
@@ -112,17 +113,17 @@ use_dd_specimens_DPLUS068 <- dd_specimens_DPLUS068 %>%
   left_join(dd_sites, by = "site_code") %>%
   # create new column for year:
   mutate(year = year(date)) %>%
-  # rename **mean** coordinates columns:
-  rename(lat = lat_mean, lon = long_mean) %>%
+  # rename locality and **mean** coordinates columns:
+  rename(loc = locality, lat = lat_mean, lon = long_mean) %>%
   # create column for extent (30m for GPS coordinates):
   mutate(extent = 30) %>%
   # exclude drift specimens:
   filter(is.na(drift)) %>%
-  # extract columns for group, name, year, collector,
-  # location group, site code, coordinates and extent:
+  # extract columns for group, name, year, collector, site code,
+  # locality, location group, coordinates and extent:
   dplyr::select(
     det_grp, det_name, year, coll,
-    site_code, loc_grp, lat, lon, extent
+    site_code, loc, loc_grp, lat, lon, extent
   )
 
 
@@ -156,6 +157,15 @@ year_grps <- levels(dd_specimens$year_grp)
 loc_grps <- dd_specimens %>%
   # drop NAs, arrange alphabetically, convert to vector:
   distinct(loc_grp) %>% drop_na %>% arrange(loc_grp) %>% pull
+
+loc_grps_locs <- map(loc_grps, function (x) {  # for each location group,
+  # create vector of associated locality names:
+  dd_specimens %>%
+    # subset specimen data for that location group:
+    filter(loc_grp == x) %>%
+    # select unique localities and convert to vector:
+    distinct(loc) %>% pull
+}) %>% set_names(loc_grps)  # name list elements
 
 
 
@@ -332,7 +342,8 @@ DPLUS068_taxa <- use_dd_specimens_DPLUS068 %>%
 ext_lim <- 50000  # 50 km
 # (i.e. excludes 'Falkland Islands', 'E Falkland', 'W Falkland')
 
-# specify coordinates for Stanley (see georeferencing protocol):
+# specify coordinates for Stanley:
+# (NB -- same as those used for georeferencing protocol)
 stanley_coords <- t(matrix(c(-57.85954, -51.69458)))  # x, y
 
 
