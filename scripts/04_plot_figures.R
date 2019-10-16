@@ -55,8 +55,15 @@ par(mar = mar_map) # outer margins
 
 # ~ all coordinates:
 
-# plot simplified flk polygon shapefile:
-plot(shp_flk_simple, border = grey(0.5), lwd = 1)
+plot(  # plot raster cell underlay
+  rasterToPolygons(flk_coast_raster),  # as polygons
+  border = grey(0.75), lwd = 1.5
+)
+
+plot(  # add simplified flk shapefile (polygons)
+  shp_flk_simple,  # add flk coast
+  lwd = 0.5, add = TRUE
+)
 
 # add circles representing extent for all coordinates:
 symbols(
@@ -97,41 +104,6 @@ points(
 
 
 dev.off()  # close .pdf plotting device
-
-
-
-
-# Base map ==========================================================
-
-# open .pdf plotting device:
-pdf(
-  "./figures/base_map.pdf",
-  # adjust height according to raster aspect ratio:
-  width = 18/2.54, height = (18/asp)/2.54
-)
-
-
-# set plotting parameters:
-par(mar = mar_map) # outer margins
-
-plot(  # plot raster cell underlay
-  rasterToPolygons(flk_coast_raster),  # as polygons
-  border = grey(0.75), lwd = 1.5
-)
-
-plot(  # add simplified flk shapefile (polygons)
-  shp_flk_simple,  # add flk coast
-  lwd = 0.5, add = TRUE
-)
-
-points(  # add points for all coordinates
-  plot_coords, pch = 21,
-  col = "white", bg = adjustcolor("royalblue", alpha = 0.8)
-)
-
-
-# close .pdf plotting device:
-dev.off()
 
 
 

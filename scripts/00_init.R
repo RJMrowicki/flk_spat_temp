@@ -39,6 +39,8 @@ library(spatial.tools)  # modify_raster_margins()
 library(knitr)  # kable()
 library(openxlsx)  # output to .xlsx
 
+library(devtools)  # session_info()
+
 
 
 
