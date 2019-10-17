@@ -6,11 +6,15 @@ output:
   pdf_document:
     fig_caption: yes
     fig_crop: yes
+    number_sections: true
   word_document:
     fig_caption: yes
+    number_sections: true
+header-includes:
+  - \usepackage{placeins}  # \FloatBarrier
 ---
 
-```{r init, include = FALSE}
+```{r init, include=FALSE}
 source('./scripts/00_init.R')  # run initialisation script
 ```
 
@@ -21,6 +25,8 @@ source('./scripts/02_species_data_analysis.R')
 source('./scripts/03_sites_data_analysis.R')
 source('./scripts/04_plot_figures.R')
 ```
+
+# Methods
 
 ## Data processing
 
@@ -46,11 +52,21 @@ Grid cells for assessing the spatial distribution of taxa (Figure 1) were derive
 
 ### Species-level assessment
 
-From a total of `r length(all_taxa)` taxa across all records, `r length(use_taxa)` were selected for species-level assessment (Table 1). Additionally, `r length(use_grps)` taxonomic groups for which there was some uncertainty over the identities of constituent taxa (_n_ = `r length(unlist(all_grps_taxa[use_grps]))`) were selected for distribution mapping (Table 2).
+From a total of `r length(all_taxa)` taxa across all records, `r length(use_taxa)` were selected for species-level assessment (Table 1). Additionally, `r length(use_grps)` taxonomic groups for which there was some uncertainty over the identities of constituent taxa (_n_ = `r length(unlist(all_grps_taxa[use_grps]))`) were selected for distribution mapping:
+
+```{r grps_taxa_table, echo = TRUE}
+# Constituent taxa within selected taxon groups:
+all_grps_taxa[use_grps]
+```
 
 For each taxon, the extent of occurrence (EOO) and area of occupancy (AOO) were determined for the most recent year group (`r last(year_grps)`). These calculations were only possible for taxa with records from at least three locations. EOO was calculated as the area of the $\alpha$-shape derived using the `alphashape` function in the R package `alphahull`, with $\alpha$ arbitrarily defined as the maximum spatial extent of records (by either latitude or longitude) multiplied by three. AOO based on occupancy of 2 $\times$ 2&nbsp;km grid cells was predicted from a log-linear model of AOO versus occupancy for a range of grid sizes achieved via successive doubling of the base grid size, following _IUCN Red List guidelines_.
 
-The number of specimen records (whereby each 'record' corresponded to a single collection 'event', i.e. unique combination of collector, year and site) were summed for each location (= group of sites; see Table 3) across all year groups, for each taxon. Additionally, the number of locations from which each taxon was collected was calculated for the most recent year group.
+The number of specimen records (whereby each 'record' corresponded to a single collection 'event', i.e. unique combination of collector, year and site) were summed for each location (= group of sites; see below) across all year groups, for each taxon. Additionally, the number of locations from which each taxon was collected was calculated for the most recent year group.
+
+```{r loc_grps_table, echo = TRUE}
+# Classification of sites by location:
+loc_grps_locs[loc_grps]
+```
 
 
 ### Site-level assessment
@@ -58,63 +74,72 @@ The number of specimen records (whereby each 'record' corresponded to a single c
 Contemporary records from the DPLUS068 'Falklands marine forests' project (2018--19) were used for site-level assessment, excluding sites for which survey duration was less than 30&nbsp;minutes. Seaweed taxonomic richness was calculated for each of the remaining `r length(use_site_codes)` sites, and categorised (based on sample quartiles) as follows: `r rich_grps`.
 
 
-## Results
+# Results
 
 ## Species-level assessment
 
-Table 4 shows EOO, AOO and number of locations for selected taxa collected in the Falkland Islands during `r last(year_grps)`.
+Figures 3 and 4 show example distribution maps for selected taxa and taxon groups. Table 2 shows EOO, AOO and number of locations for selected taxa collected in the Falkland Islands during `r last(year_grps)` and Table 3 shows an example summary of the number of records from different locations across all year groups.
 
 
 ## Site-level assessment
 
-Figure 3 shows seaweed taxonomic richness at sites surveyed during the DPLUS068 project during 2018--19.
+Figure 5 shows seaweed taxonomic richness at sites surveyed during the DPLUS068 project during 2018--19.
 
+
+\newpage
 
 ## Figures
+
+\FloatBarrier
 
 ![Distribution of historical and contemporary Falkland Islands seaweed specimen records, for which spatial extent $\leq$ `r ext_lim/10^3`&nbsp;km (i.e. excluding unlocated records from 'East Falkland', 'West Falkland', and the 'Falkland Islands'). Circles represent extent assigned through the georeferencing protocol.](./figures/coords_map.pdf)
 
 ![Temporal distribution of Falkland Islands seaweed specimen records included in analyses.](./figures/histogram.pdf)
 
+![Example distribution map for a selected taxon, showing collection sites and corresponding grid cell occupancy. Based on the most recent year group only.](./figures/taxon_maps_eg.pdf)
+
+![Example distribution map for a taxon group within which there is still some taxonomic uncertainty, showing collection sites for individual taxa and grid cell occupancy for the taxon group as a whole. Based on the most recent year group only.](./figures/taxon_group_maps_eg.pdf)
+
 ![Seaweed taxonomic richness at sites surveyed during the DPLUS068 'Falklands marine forests' project (2018--19).](./figures/rich_map.pdf)
 
 
+\newpage
+
 ## Tables
 
-```{r taxa_table, echo=FALSE}
+\FloatBarrier
+
+```{r taxa_table, echo = FALSE, results = 'asis'}
 use_taxa %>%
   kable(
     col.names = "Species",
-    caption = "Individual species selected for species-level assessment"
+    caption = "Individual taxa selected for species-level assessment."
   )
 ```
 
-```{r grps_taxa_table, echo=FALSE, results='asis'}
-# for (i in use_grps) {
-#   print(kable(all_grps_taxa[i], col.names = i))
-#   cat("\n")  # line break following each print call
-# }
-```
-
-```{r loc_grps_table, echo=FALSE, results='asis'}
-# for (i in loc_grps) {
-#   print(kable(loc_grps_locs[i], col.names = i))
-#   cat("\n")  # line break following each print call
-# }
-```
-
-```{r taxa_eoo_aoo_locs_table, echo=FALSE}
+```{r taxa_eoo_aoo_locs_table, echo = FALSE, results = 'asis'}
 taxa_eoo_aoo_locs %>%
   # format numerical columns:
   mutate_at(2:3, ~ formatC(., big.mark = ",", digits = 0, format = "f")) %>%
   kable(
-    caption = "Extent of occurrence (EOO), area of occupancy (AOO) and number of locations for selected seaweed taxa collected from the Falkland Islands during `r last(year_grps)`.",
-    align = "lrrr"  # right align numerical columns
+    align = "lrrr",  # right align numerical columns
+    caption = "Extent of occurrence (EOO), area of occupancy (AOO) and number of locations for selected seaweed taxa collected from the Falkland Islands during the most recent year group only."
   )
 ```
 
+```{r taxa_st_table, echo = FALSE, results = 'asis'}
+taxa_st[["Cladodonta lyallii"]] %>%  # must index list properly to result in data frame
+  rownames_to_column("location") %>%  # NB -- having rownames messes up formatting
+  kable(
+    caption = "Summary of the number of records from different locations across all year groups for the species \\emph{Cladodonta lyallii}."
+  )
+```
+
+
+\newpage
+
 ## Session info
 
-```{r session_info, include=TRUE, echo=TRUE, results='markup'}
+```{r session_info, include = TRUE, echo = TRUE}
 session_info()
 ```

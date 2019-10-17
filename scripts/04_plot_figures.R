@@ -152,11 +152,69 @@ for (i in use_taxa) {  # for each selected taxon,
       col = "white", bg = adjustcolor("royalblue", alpha = 0.8)
     )
     
-    legend(  # add taxon name in top right corner
-      "topright", legend = i, bty = "n", cex = 1
+    legend(  # add taxon name in bottom right corner
+      "bottomright", legend = i, bty = "n", cex = 1
     )
     
   }
+}
+
+
+# close .pdf plotting device:
+dev.off()
+
+
+
+
+# ~ example taxon map for inclusion in report:
+
+# open .pdf plotting device:
+pdf(
+  "./figures/taxon_maps_eg.pdf",
+  # adjust height according to raster aspect ratio:
+  width = 18/2.54, height = (18/asp)/2.54
+)
+
+
+# set plotting parameters:
+par(mar = mar_map)  # outer margins
+
+
+
+sel_taxon <- "Bryopsis rosea"  # selected taxon
+
+# extract coordinates and raster for this taxon:
+# (NB -- **most recent** year group only)
+taxon_coords <- taxa_coords[[sel_taxon]][[last(year_grps)]]
+taxon_raster <- taxa_rasters[[sel_taxon]][[last(year_grps)]]
+
+# only if coordinates/raster are not NULL :
+if (!is.null(taxon_coords)) {
+  
+  plot(  # plot raster cell underlay (as polygons)
+    rasterToPolygons(flk_coast_raster),
+    border = grey(0.75), lwd = 1
+  )
+  
+  plot(  # add simplified flk polygon shapefile
+    shp_flk_simple, add = TRUE,
+    lwd = 0.5
+  )
+  
+  plot(  # add taxon raster squares
+    rasterToPolygons(taxon_raster), add = TRUE,
+    border = NA, col = adjustcolor("royalblue", alpha = 0.8)
+  )
+  
+  points(  # add taxon coordinates points
+    taxon_coords, pch = 21,
+    col = "white", bg = adjustcolor("royalblue", alpha = 0.8)
+  )
+  
+  legend(  # add taxon name in top right corner
+    "bottomright", legend = sel_taxon, bty = "n", cex = 1
+  )
+  
 }
 
 
@@ -269,12 +327,96 @@ for (i in use_grps) {  # for each selected taxon group,
     )
 
     legend(  # add legend for taxon
-      "bottomright", bty = "n", legend = pt_sty_taxa$taxon,
+      "bottomright", bty = "n",
+      title = i, legend = pt_sty_taxa$taxon,
       pch = 21, col = "white", pt.bg = pt_sty_taxa$col
     )
+
+  }
+}
+
+
+# close .pdf plotting device:
+dev.off()
+
+
+
+
+# ~ example taxon group map for inclusion in report:
+
+# open .pdf plotting device:
+pdf(
+  "./figures/taxon_group_maps_eg.pdf",
+  # adjust height according to raster aspect ratio:
+  width = 18/2.54, height = (18/asp)/2.54
+)
+
+
+# set plotting parameters:
+par(mar = mar_map)  # outer margins
+
+
+# create plots:
+for (i in "Adenocystis") {  # for each selected taxon group,
+  
+  # extract coordinates/raster for this group:
+  # (NB -- **most recent** year group only)
+  grp_coords <- grps_coords[[i]][[last(year_grps)]]
+  grp_raster <- grps_rasters[[i]][[last(year_grps)]]
+  
+  # only if coordinates/raster are not NULL :
+  if (!is.null(grp_raster)) {
     
-    legend(  # add taxon group name in top right corner
-      "topright", legend = i, bty = "n", cex = 1
+    # create vector of taxa within this group:
+    grp_taxa <- grp_coords$det_name %>%
+      # convert to factor and relevel to place "sp. " at the end:
+      fct_relevel(
+        grep("sp. ", levels(factor(.)), value = TRUE),
+        after = Inf  # move to end
+      ) %>% levels
+    
+    # create point style table for taxon lookup:
+    pt_sty_taxa <- tibble(
+      taxon = grp_taxa,
+      col = grps_taxa_colours(length(grp_taxa))
+    )
+    
+    plot(  # plot raster cell underlay (as polygons)
+      rasterToPolygons(flk_coast_raster),
+      border = grey(0.75), lwd = 1
+    )
+    
+    plot(  # add simplified flk polygon shapefile
+      shp_flk_simple, add = TRUE,
+      lwd = 0.5
+    )
+    
+    plot(  # add taxon group raster squares
+      rasterToPolygons(grp_raster), add = TRUE,
+      border = NA, col = grey(0.5, alpha = 0.5)
+    )
+
+    # ~ plot non-overlapping 'points' for group as a whole:
+    pt_radius <- 2000  # specify 'point' radius (in m)
+    # determine non-overlapping layout, based on 'point' radius:
+    lyt <- circleRepelLayout(
+      cbind(coordinates(grp_coords), pt_radius),
+      sizetype = "radius")$layout
+    
+    # add taxa points as non-overlapping circles:
+    symbols(
+      lyt$x, lyt$y, lyt$radius, inches = FALSE, add = TRUE,
+      fg = "white",
+      # colour according to taxon:
+      bg = pt_sty_taxa$col[match(
+        grp_coords$det_name, pt_sty_taxa$taxon
+      )]
+    )
+    
+    legend(  # add legend for taxon
+      "bottomright", bty = "n",
+      title = i, legend = pt_sty_taxa$taxon,
+      pch = 21, col = "white", pt.bg = pt_sty_taxa$col
     )
     
   }
